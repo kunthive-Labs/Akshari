@@ -1,0 +1,84 @@
+[
+  {
+    "id": "ai-saas",
+    "name": "AI / SaaS startup",
+    "description": "Clear, credible typefaces for product surfaces that need confidence without coldness.",
+    "tags": [
+      "modern",
+      "trustworthy",
+      "ui-product"
+    ],
+    "sortOrder": 1,
+    "fontCount": 4,
+    "fontIds": [
+      "bcffb532-0d17-4713-98bb-a9e595dc7361",
+      "431f2bdc-0c93-465b-990c-5cbd44fce11d",
+      "4c04b085-aa13-4ed7-90c4-3202116fe2a1",
+      "2af3b362-eef8-4502-96e2-11b88b359da8"
+    ]
+  },
+  {
+    "id": "editorial",
+    "name": "Editorial / blog",
+    "description": "Text-led families with a distinctive reading texture and confident display options.",
+    "tags": [
+      "editorial",
+      "elegant"
+    ],
+    "sortOrder": 2,
+    "fontCount": 3,
+    "fontIds": [
+      "53b43b6a-6871-49a7-afd9-40714e3d3087",
+      "4c04b085-aa13-4ed7-90c4-3202116fe2a1",
+      "8d2a032f-2c9b-4802-8c80-a7e93a2a7900"
+    ]
+  },
+  {
+    "id": "luxury-brand",
+    "name": "Luxury brand",
+    "description": "Refined, expressive type for a considered brand point of view.",
+    "tags": [
+      "elegant",
+      "luxurious",
+      "branding"
+    ],
+    "sortOrder": 3,
+    "fontCount": 2,
+    "fontIds": [
+      "53b43b6a-6871-49a7-afd9-40714e3d3087",
+      "8d2a032f-2c9b-4802-8c80-a7e93a2a7900"
+    ]
+  },
+  {
+    "id": "dev-tool",
+    "name": "Dev tool / technical",
+    "description": "Precise, sturdy families for documentation, code-adjacent interfaces, and complex information.",
+    "tags": [
+      "technical",
+      "dev-tool"
+    ],
+    "sortOrder": 4,
+    "fontCount": 2,
+    "fontIds": [
+      "2af3b362-eef8-4502-96e2-11b88b359da8",
+      "ac53661b-da7b-48b5-b110-b8f21a0245a1"
+    ]
+  },
+  {
+    "id": "playful-consumer",
+    "name": "Playful consumer app",
+    "description": "Friendly, readable families with warmth and easy character.",
+    "tags": [
+      "playful",
+      "friendly",
+      "rounded"
+    ],
+    "sortOrder": 5,
+    "fontCount": 3,
+    "fontIds": [
+      "bcffb532-0d17-4713-98bb-a9e595dc7361",
+      "431f2bdc-0c93-465b-990c-5cbd44fce11d",
+      "46c46851-fa1b-4fb6-be5c-288276d946aa"
+    ]
+  }
+]

@@ -1,14 +1,9 @@
-# Cloudflare Pages configuration for Fontscape (frontend + API Functions).
+# Cloudflare Pages configuration for Akshari.
+# The site is fully static: the catalog ships as public/fonts.json +
+# public/presets.json and all search/scoring runs in the browser, so there is
+# no Functions runtime, no database, and no secrets to configure.
 # Dashboard equivalents when connecting the Git repo: Build command
-# `npm run build`, Build output directory `dist`. This file also supplies the
-# Functions runtime settings used by `wrangler pages deploy` / `pages dev`.
+# `npm run build`, Build output directory `dist`.
 name = "akshari"
 compatibility_date = "2024-11-06"
-compatibility_flags = ["nodejs_compat"]
 pages_build_output_dir = "dist"
-
-# The /api/* Function connects to your Neon Postgres. Set DATABASE_URL in the
-# dashboard (Settings > Variables and Secrets) as an encrypted variable for
-# Production and Preview. Uncomment below only for local `wrangler pages dev`:
-# [vars]
-# DATABASE_URL = "postgresql://USER:PASSWORD@ep-xxxx.neon.tech/neondb?sslmode=require"

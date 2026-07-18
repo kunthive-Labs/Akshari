@@ -1,7 +1,7 @@
 # Cloudflare Pages security headers (mirrors nginx.conf).
 # The CSP keeps everything same-origin except Google Fonts, which the app
-# needs at runtime (chrome type + live specimen loading). /api/* is proxied
-# same-origin by the Pages Function, so connect-src stays 'self'.
+# needs at runtime (chrome type + live specimen loading). The catalog loads
+# from same-origin /fonts.json, so connect-src stays 'self'.
 /*
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
