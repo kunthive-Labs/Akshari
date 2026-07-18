@@ -1,14 +1,20 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
-  ArrowRight, Check, Copy, MagnifyingGlass, Moon, Plus,
-  Sparkle, Sun, X,
+  ArrowRight, Check, Copy, MagnifyingGlass, Moon, Plus, Sun, X,
 } from '@phosphor-icons/react'
 
+// A pangram: one sentence that carries every letter a to z, so each card shows
+// how the whole alphabet behaves in the family, not just a single glyph.
+const PANGRAM = 'The quick brown fox jumps over the lazy dog'
+const UPPERCASE = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+const LOWERCASE = 'abcdefghijklmnopqrstuvwxyz'
+const FIGURES = '1234567890 & . , ; : ! ? @ # $ % ( ) “ ”'
+
 const FALLBACK_FONTS = [
-  { name: 'Satoshi', className: 'satoshi', initials: 'Sa', category: 'Neo-grotesk', tags: ['Modern', 'Trustworthy', 'UI product'], rawTags: ['modern', 'trustworthy', 'ui-product'], score: 94, detail: 'Open apertures, high x-height', weights: '400-900', note: 'Clear and confident at small sizes.' },
-  { name: 'Manrope', className: 'manrope', initials: 'Ma', category: 'Geometric sans', tags: ['Geometric', 'Friendly', 'SaaS'], rawTags: ['geometric', 'friendly', 'saas'], score: 91, detail: 'Rounded forms, low contrast', weights: '400-800', note: 'Warm structure without losing precision.' },
-  { name: 'DM Sans', className: 'dm', initials: 'DM', category: 'Low-contrast grotesk', tags: ['Modern', 'Readable', 'UI product'], rawTags: ['modern', 'readable', 'ui-product'], score: 89, detail: 'Wide aperture, sturdy rhythm', weights: '400-700', note: 'Quietly capable for product interfaces.' },
-  { name: 'Space Grotesk', className: 'space', initials: 'SG', category: 'Neo-grotesk', tags: ['Technical', 'Distinctive', 'Modern'], rawTags: ['technical', 'distinctive', 'modern'], score: 84, detail: 'Angular details, generous counters', weights: '400-700', note: 'A sharper edge for forward-looking tools.' },
+  { name: 'DM Sans', category: 'Low-contrast grotesk', tags: ['Modern', 'Readable', 'UI product'], rawTags: ['modern', 'readable', 'ui-product'], score: 89, weights: '400-700', note: 'Quietly capable for product interfaces.' },
+  { name: 'Manrope', category: 'Geometric sans', tags: ['Geometric', 'Friendly', 'SaaS'], rawTags: ['geometric', 'friendly', 'saas'], score: 91, weights: '400-800', note: 'Warm structure without losing precision.' },
+  { name: 'Space Grotesk', category: 'Neo-grotesk', tags: ['Technical', 'Distinctive', 'Modern'], rawTags: ['technical', 'distinctive', 'modern'], score: 84, weights: '400-700', note: 'A sharper edge for forward-looking tools.' },
+  { name: 'Fraunces', category: 'Old-style display', tags: ['Editorial', 'Elegant', 'Display'], rawTags: ['editorial', 'elegant', 'display'], score: 82, weights: '400-600', note: 'Characterful contrast for headlines with a voice.' },
 ]
 
 const FILTERS = {
@@ -35,63 +41,138 @@ function toDisplayFont(font) {
     name: font.family,
     googleFontsId: font.googleFontsId,
     previewUrl: font.previewUrl,
-    className: font.googleFontsId?.replace(/[^a-z]/g, '') || 'dm',
     initials: font.family.split(' ').map(word => word[0]).join('').slice(0, 2),
     category: font.category || 'Type family',
     tags: tags.slice(0, 3).map(titleCase),
     rawTags: tags,
     score: font.matchScore ?? 0,
-    detail: `${font.features?.aperture ?? 'open'} apertures, ${font.features?.contrast ?? 'low'} contrast`,
     weights,
-    note: font.description || 'Available in the Fontscape catalog.',
+    note: font.description || 'Available in the Akshari catalog.',
   }
 }
 
-function Tag({ children, active, onClick }) {
-  return <button className={`tag ${active ? 'tag-active' : ''}`} onClick={onClick} aria-pressed={active}>{children}</button>
+// Fontscape is a Google Fonts browser, so the honest specimen is the family set
+// in its own typeface. Families load lazily (only as a card nears the viewport)
+// through <link> injection, which the app's CSP allows. Chrome type is preloaded
+// from index.html, so those names are skipped here.
+const PRELOADED_FAMILIES = new Set(['Fraunces', 'Inter', 'Source Serif 4'])
+const requestedFamilies = new Set()
+
+function ensureFontFace(name) {
+  if (!name || PRELOADED_FAMILIES.has(name) || requestedFamilies.has(name)) return
+  requestedFamilies.add(name)
+  const link = document.createElement('link')
+  link.rel = 'stylesheet'
+  link.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(name).replace(/%20/g, '+')}:wght@400;600&display=swap`
+  document.head.append(link)
 }
 
-function FontCard({ font, compared, onPreview, onCompare }) {
-  return <article className="font-card">
-    <button className={`font-specimen ${font.className}`} onClick={() => onPreview(font)} aria-label={`Preview ${font.name}`}>
-      <span aria-hidden="true">{font.name === 'IBM Plex Mono' ? '0O1l' : 'Ag'}</span>
-      <small>{font.category}</small>
+function useInView(ref) {
+  const [inView, setInView] = useState(false)
+  useEffect(() => {
+    if (inView || !ref.current) return undefined
+    if (!('IntersectionObserver' in window)) { setInView(true); return undefined }
+    const observer = new IntersectionObserver(entries => {
+      if (entries.some(entry => entry.isIntersecting)) { setInView(true); observer.disconnect() }
+    }, { rootMargin: '250px 0px' })
+    observer.observe(ref.current)
+    return () => observer.disconnect()
+  }, [inView, ref])
+  return inView
+}
+
+function useSpecimenFont(name, active) {
+  const [ready, setReady] = useState(false)
+  useEffect(() => {
+    if (!active || !name) return undefined
+    ensureFontFace(name)
+    if (!('fonts' in document)) { setReady(true); return undefined }
+    let cancelled = false
+    const done = () => { if (!cancelled) setReady(true) }
+    Promise.all([document.fonts.load(`400 24px "${name}"`), document.fonts.load(`600 24px "${name}"`)]).then(done, done)
+    return () => { cancelled = true }
+  }, [name, active])
+  return ready
+}
+
+function Pill({ children, active, onClick }) {
+  return <button type="button" className={`pill ${active ? 'is-active' : ''}`} onClick={onClick} aria-pressed={active}>{children}</button>
+}
+
+function FontCard({ font, index, compared, isTop, onPreview, onCompare }) {
+  const specimenRef = useRef(null)
+  const inView = useInView(specimenRef)
+  const ready = useSpecimenFont(font.name, inView)
+  const family = inView && ready ? `'${font.name}', var(--font-display)` : undefined
+  const loading = inView && !ready
+
+  return <article className="card font-card grain" style={{ '--i': index % 14 }}>
+    <button ref={specimenRef} type="button" className={`specimen ${loading ? 'is-loading' : ''}`} onClick={() => onPreview(font)} aria-label={`Open the ${font.name} specimen`}>
+      <span className="specimen-name" style={{ fontFamily: family }}>{font.name}</span>
+      <span className="specimen-line" style={{ fontFamily: family }} aria-hidden="true">{PANGRAM}</span>
     </button>
-    <div className="font-card-content">
-      <div className="font-card-heading"><div><h3>{font.name}</h3><p>{font.detail}</p></div>{font.score > 0 && <span className="match">{font.score}%</span>}</div>
-      <div className="card-tags">{font.tags.length ? font.tags.map(tag => <span key={tag}>{tag}</span>) : <span>Catalog family</span>}</div>
+    <div className="font-meta">
+      <div className="font-meta-head">
+        <h3 className="font-name">{font.name}</h3>
+        {font.score > 0 && <span className={`match ${isTop ? 'is-top' : ''}`}>{isTop ? `Top match · ${font.score}%` : `${font.score}%`}</span>}
+      </div>
+      <p className="font-sub">{font.category}{font.weights ? ` · ${font.weights}` : ''}</p>
+      <div className="tags">{font.tags.map(tag => <span key={tag} className="tag">{tag}</span>)}</div>
       <div className="card-actions">
-        <button className="preview-action" onClick={() => onPreview(font)}>Preview <ArrowRight size={15} /></button>
-        <button className={`compare-action ${compared ? 'in-tray' : ''}`} onClick={() => onCompare(font)} aria-pressed={compared}>
-          {compared ? <Check size={15} weight="bold" /> : <Plus size={16} weight="bold" />}{compared ? 'Added' : 'Compare'}
+        <button type="button" className="btn-ghost" onClick={() => onPreview(font)}>Preview <ArrowRight size={14} /></button>
+        <button type="button" className={`btn-ghost ${compared ? 'is-added' : ''}`} onClick={() => onCompare(font)} aria-pressed={compared}>
+          {compared ? <><Check size={14} weight="bold" /> Added</> : <><Plus size={14} weight="bold" /> Compare</>}
         </button>
       </div>
     </div>
   </article>
 }
 
+function SkeletonCard() {
+  return <div className="card font-card skeleton-card" aria-hidden="true">
+    <div className="sk sk-specimen" />
+    <div className="sk-block">
+      <div className="sk sk-name" />
+      <div className="sk sk-line" />
+      <div className="sk-chips"><span className="sk sk-chip" /><span className="sk sk-chip" /></div>
+    </div>
+  </div>
+}
+
 function PreviewDialog({ font, pageTheme, onClose }) {
   const [previewTheme, setPreviewTheme] = useState(pageTheme)
-  const [size, setSize] = useState(34)
-  const [weight, setWeight] = useState(600)
+  const [size, setSize] = useState(44)
+  const [weight, setWeight] = useState(400)
+  const [sample, setSample] = useState(PANGRAM)
   const [copied, setCopied] = useState(false)
+  const dialogRef = useRef(null)
+  const ready = useSpecimenFont(font.name, true)
+  const family = ready ? `'${font.name}', var(--font-display)` : 'var(--font-display)'
 
+  // Trap Tab focus inside the dialog and restore focus to the trigger on close.
   useEffect(() => {
-    if (font.previewUrl && 'FontFace' in window) {
-      const face = new FontFace(font.name, `url(${font.previewUrl})`)
-      face.load().then(loaded => document.fonts.add(loaded)).catch(() => undefined)
-      return undefined
+    const node = dialogRef.current
+    if (!node) return undefined
+    const previouslyFocused = document.activeElement
+    const getFocusable = () => Array.from(
+      node.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'),
+    ).filter(element => !element.disabled && element.offsetParent !== null)
+    getFocusable()[0]?.focus()
+    const onKeyDown = event => {
+      if (event.key !== 'Tab') return
+      const items = getFocusable()
+      if (!items.length) return
+      const first = items[0]
+      const last = items[items.length - 1]
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus() }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus() }
     }
-    if (!font.googleFontsId) return undefined
-    const id = `fontscape-preview-${font.googleFontsId}`
-    if (document.getElementById(id)) return undefined
-    const link = document.createElement('link')
-    link.id = id
-    link.rel = 'stylesheet'
-    link.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(font.name).replace(/%20/g, '+')}:wght@400;500;600;700&display=swap`
-    document.head.append(link)
-    return undefined
-  }, [font.googleFontsId, font.name, font.previewUrl])
+    node.addEventListener('keydown', onKeyDown)
+    return () => {
+      node.removeEventListener('keydown', onKeyDown)
+      if (previouslyFocused instanceof HTMLElement) previouslyFocused.focus()
+    }
+  }, [])
 
   const copy = async () => {
     let value = `font-family: '${font.name}', sans-serif;`
@@ -100,29 +181,42 @@ function PreviewDialog({ font, pageTheme, onClose }) {
     }
     await navigator.clipboard?.writeText(value)
     setCopied(true)
-    window.setTimeout(() => setCopied(false), 1600)
+    window.setTimeout(() => setCopied(false), 1800)
   }
 
-  return <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
-    <section className="preview-dialog" data-preview-theme={previewTheme} role="dialog" aria-modal="true" aria-labelledby="preview-title" onMouseDown={event => event.stopPropagation()}>
-      <header className="dialog-header">
-        <div><span className="eyebrow"><Sparkle size={13} weight="fill" /> Live preview</span><h2 id="preview-title">{font.name}</h2><p>{font.note}</p></div>
-        <button className="icon-button" onClick={onClose} aria-label="Close preview"><X size={20} /></button>
-      </header>
-      <div className="dialog-controls">
-        <div className="segmented-control" aria-label="Sandbox appearance">
-          <button className={previewTheme === 'light' ? 'is-active' : ''} onClick={() => setPreviewTheme('light')} aria-pressed={previewTheme === 'light'}><Sun size={15} /> Light</button>
-          <button className={previewTheme === 'dark' ? 'is-active' : ''} onClick={() => setPreviewTheme('dark')} aria-pressed={previewTheme === 'dark'}><Moon size={15} /> Dark</button>
+  return <div className="modal" role="presentation" onMouseDown={onClose}>
+    <section ref={dialogRef} className="card dialog" data-theme={previewTheme} role="dialog" aria-modal="true" aria-labelledby="dialog-title" onMouseDown={event => event.stopPropagation()}>
+      <header className="dialog-head">
+        <div>
+          <span className="section-label eyebrow">Live specimen</span>
+          <h2 className="dialog-title" id="dialog-title">{font.name}</h2>
+          <p className="dialog-sub">{font.note}</p>
         </div>
-        <label>Size <input type="range" min="24" max="50" value={size} onChange={event => setSize(event.target.value)} /><output>{size}px</output></label>
-        <label>Weight <select value={weight} onChange={event => setWeight(event.target.value)}><option>400</option><option>500</option><option>600</option><option>700</option></select></label>
+        <button type="button" className="icon-btn" onClick={onClose} aria-label="Close specimen"><X size={20} /></button>
+      </header>
+
+      <div className="dialog-controls">
+        <div className="segmented" role="group" aria-label="Specimen paper">
+          <button type="button" className={previewTheme === 'light' ? 'is-active' : ''} onClick={() => setPreviewTheme('light')} aria-pressed={previewTheme === 'light'}><Sun size={14} /> Light</button>
+          <button type="button" className={previewTheme === 'dark' ? 'is-active' : ''} onClick={() => setPreviewTheme('dark')} aria-pressed={previewTheme === 'dark'}><Moon size={14} /> Dark</button>
+        </div>
+        <label className="control">Size <input type="range" min="24" max="96" value={size} onChange={event => setSize(Number(event.target.value))} aria-label="Preview size in pixels" /><output>{size}px</output></label>
+        <label className="control">Weight <select value={weight} onChange={event => setWeight(Number(event.target.value))}><option value={400}>Regular</option><option value={600}>Semibold</option></select></label>
       </div>
-      <div className="product-preview" style={{ '--preview-family': `'${font.name}', sans-serif`, '--preview-size': `${size}px`, '--preview-weight': weight }}>
-        <nav><strong>Northstar</strong><span>Product&nbsp;&nbsp;&nbsp;Solutions&nbsp;&nbsp;&nbsp;Pricing</span><button>Start free</button></nav>
-        <main><p>AN OPERATING SYSTEM FOR FOCUSED TEAMS</p><h3>Make work feel<br />more deliberate.</h3><div><input aria-label="Work email" placeholder="you@company.com" /><button>Get started</button></div></main>
-        <footer><span>Simple systems for thoughtful teams.</span><span>New York · London · Remote</span></footer>
+
+      <div className="tester" style={{ '--tester-family': family, '--tester-size': `${size}px`, '--tester-weight': weight }}>
+        <input className="tester-input" value={sample} onChange={event => setSample(event.target.value)} aria-label="Type your own preview text" spellCheck="false" placeholder="Type anything to test it" />
+        <div className="tester-grid">
+          <p className="tester-set"><span className="glyph-label">Uppercase</span>{UPPERCASE}</p>
+          <p className="tester-set"><span className="glyph-label">Lowercase</span>{LOWERCASE}</p>
+          <p className="tester-set"><span className="glyph-label">Figures and symbols</span>{FIGURES}</p>
+        </div>
       </div>
-      <footer className="dialog-footer"><span>{font.weights} weights · Google Fonts · OFL</span><button className="primary-button" onClick={copy}>{copied ? <Check size={17} /> : <Copy size={16} />}{copied ? 'Copied CSS' : 'Copy CSS'}</button></footer>
+
+      <footer className="dialog-foot">
+        <span className="meta">{font.category} · Google Fonts · OFL</span>
+        <button type="button" className={`btn-primary ${copied ? 'is-success' : ''}`} onClick={copy}>{copied ? <Check size={16} weight="bold" /> : <Copy size={15} />}{copied ? 'Copied CSS' : 'Copy CSS'}</button>
+      </footer>
     </section>
   </div>
 }
@@ -134,7 +228,8 @@ function App() {
   const [loading, setLoading] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
   const [catalogMessage, setCatalogMessage] = useState('')
-  const [theme, setTheme] = useState(() => localStorage.getItem('fontscape-theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'))
+  // Default to light mode; only honour an explicit saved preference.
+  const [theme, setTheme] = useState(() => localStorage.getItem('fontscape-theme') || 'light')
   const [activeTags, setActiveTags] = useState([])
   const [sort, setSort] = useState('match')
   const [previewFont, setPreviewFont] = useState(null)
@@ -167,9 +262,9 @@ function App() {
         const payload = await response.json()
         setCatalogFonts(payload.fonts.map(toDisplayFont))
         setTotalResults(payload.total ?? payload.fonts.length)
-        setCatalogMessage(payload.inferredTags.length ? `Semantic match: ${payload.inferredTags.map(titleCase).join(', ')}` : '')
+        setCatalogMessage(payload.inferredTags.length ? `Matched on ${payload.inferredTags.map(titleCase).join(', ')}` : '')
       } catch (error) {
-        if (error.name !== 'AbortError') { setCatalogFonts(FALLBACK_FONTS); setTotalResults(FALLBACK_FONTS.length); setCatalogMessage('Showing the local starter catalog while the API reconnects.') }
+        if (error.name !== 'AbortError') { setCatalogFonts(FALLBACK_FONTS); setTotalResults(FALLBACK_FONTS.length); setCatalogMessage('Showing the local starter set while the catalog reconnects.') }
       } finally { if (!controller.signal.aborted) setLoading(false) }
     }, 180)
     return () => { controller.abort(); window.clearTimeout(timer) }
@@ -185,6 +280,7 @@ function App() {
 
   const shown = results
   const toggleTag = tag => setActiveTags(current => current.includes(tag) ? current.filter(item => item !== tag) : [...current, tag])
+  const notify = message => { setToast(message); window.setTimeout(() => setToast(''), 2200) }
   const loadMore = async () => {
     setLoadingMore(true)
     try {
@@ -197,48 +293,94 @@ function App() {
     } catch { notify('Could not load the next catalog page.') } finally { setLoadingMore(false) }
   }
   const toggleCompare = font => setCompared(current => current.some(item => item.name === font.name) ? current.filter(item => item.name !== font.name) : current.length < 4 ? [...current, font] : current)
-  const notify = message => { setToast(message); window.setTimeout(() => setToast(''), 2200) }
 
   return <div className="app-shell">
-    <a className="skip-link" href="#results">Skip to search results</a>
+    <a className="skip-link" href="#results">Skip to results</a>
+
     <header className="topbar">
-      <a className="brand" href="#top" aria-label="Fontscape home"><span className="brand-mark">F</span><span>fontscape</span></a>
-      <nav aria-label="Primary navigation"><a className="nav-active" href="#discover">Discover</a><a href="#presets">Presets</a><a href="#about">About</a></nav>
-      <div className="top-actions"><button className="search-shortcut" onClick={() => document.getElementById('font-search')?.focus()}><MagnifyingGlass size={16} /> Search <kbd>/</kbd></button><button className="appearance-button" onClick={() => setTheme(current => current === 'dark' ? 'light' : 'dark')} aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}>{theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}<span>{theme === 'dark' ? 'Light' : 'Dark'}</span></button></div>
+      <a className="brand" href="#top" aria-label="Akshari home"><img className="brand-mark" src="/brand-mark.png" alt="" width="28" height="28" /><span className="brand-name">Akshari</span></a>
+      <nav className="topnav" aria-label="Primary">
+        <a className="is-active" href="#top">Discover</a>
+        <a href="#results">Catalog</a>
+        <a href="https://github.com/kunthive-Labs/Akshari">About</a>
+      </nav>
+      <div className="top-actions">
+        <button type="button" className="search-shortcut" onClick={() => document.getElementById('font-search')?.focus()}><MagnifyingGlass size={15} /> Search <kbd>/</kbd></button>
+        <button type="button" className="theme-toggle" onClick={() => setTheme(current => current === 'dark' ? 'light' : 'dark')} aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}>{theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}<span>{theme === 'dark' ? 'Light' : 'Dark'}</span></button>
+      </div>
     </header>
 
-    <main id="top">
-      <section className="discovery-hero" id="discover">
-        <div><span className="eyebrow"><Sparkle size={13} weight="fill" /> Find type with intent</span><h1>Choose typefaces<br /><em>with confidence.</em></h1><p>Search by feeling, context, or visual character. Compare choices in the same product surface before committing.</p></div>
-        <aside><strong>{catalogFonts.length.toLocaleString()}</strong><span>families in the catalog</span><p>Google Fonts only. Every family is free to use and ready to test.</p></aside>
-      </section>
+    <div className="app-body" id="top">
+      <aside className="sidebar" aria-label="Filters and directions">
+        <div className="sidebar-scroll">
+          <div className="side-intro">
+            <span className="section-label eyebrow">Type discovery</span>
+            <h1 className="side-title">Choose type with <em>confidence.</em></h1>
+            <p className="side-lead">Read every letter in a live specimen before you commit.</p>
+          </div>
 
-      <section className="search-section" aria-label="Font search">
-        <label className="search-box" htmlFor="font-search"><MagnifyingGlass size={22} /><input id="font-search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Describe what you need, for example “warm and trustworthy fintech”" /><kbd>/</kbd></label>
-        <div className="suggestion-row"><span>Try a direction</span>{['Modern & trustworthy', 'Warm & human', 'Technical & precise'].map(term => <button key={term} onClick={() => setQuery(term)}>{term}</button>)}</div>
-      </section>
+          <div className="side-block">
+            <div className="filter-head">
+              <span className="section-label">Refine</span>
+              {activeTags.length > 0 && <button type="button" className="filter-clear" onClick={() => setActiveTags([])}>Clear</button>}
+            </div>
+            {Object.entries(FILTERS).map(([group, tags]) => <div className="filter-group" key={group}><h4>{group}</h4><div className="pill-row">{tags.map(tag => <Pill key={tag} active={activeTags.includes(tag)} onClick={() => toggleTag(tag)}>{tag}</Pill>)}</div></div>)}
+          </div>
 
-      <section className="catalog-layout" id="results">
-        <aside className="filters" aria-label="Catalog filters">
-          <div className="filter-heading"><div><span>Filter catalog</span><h2>Refine your view</h2></div>{activeTags.length > 0 && <button onClick={() => setActiveTags([])}>Clear</button>}</div>
-          {Object.entries(FILTERS).map(([group, tags]) => <div className="filter-group" key={group}><h3>{group}</h3><div>{tags.map(tag => <Tag key={tag} active={activeTags.includes(tag)} onClick={() => toggleTag(tag)}>{tag}</Tag>)}</div></div>)}
-        </aside>
+          <div className="side-block">
+            <span className="section-label">Try a direction</span>
+            <div className="side-presets">{PRESETS.map(([name, ...tags]) => <button key={name} type="button" className="side-preset" onClick={() => { setQuery(''); setActiveTags(tags.map(titleCase)) }}><strong>{name}</strong><span>{tags.map(titleCase).join(', ')}</span></button>)}</div>
+          </div>
 
-        <div className="results-area">
-          <div className="results-heading"><div><span>{loading ? 'Searching catalog' : catalogMessage || 'All type families'}</span><h2>{results.length.toLocaleString()} results</h2></div><label className="sort-control">Sort <select value={sort} onChange={event => setSort(event.target.value)}><option value="match">Best match</option><option value="name">A to Z</option></select></label></div>
-          {activeTags.length > 0 && <div className="active-filter-row" aria-live="polite">{activeTags.map(tag => <Tag key={tag} active onClick={() => toggleTag(tag)}>{tag} <X size={12} /></Tag>)}</div>}
-          {shown.length ? <div className="font-grid">{shown.map(font => <FontCard key={font.id || font.name} font={font} compared={compared.some(item => item.name === font.name)} onPreview={setPreviewFont} onCompare={toggleCompare} />)}</div> : <div className="empty-state"><h3>No families match this direction.</h3><p>Try fewer filters or describe the intended use instead.</p><button onClick={() => { setQuery(''); setActiveTags([]) }}>Clear search</button></div>}
-          {shown.length < totalResults && <div className="load-more"><p>Showing {shown.length.toLocaleString()} of {totalResults.toLocaleString()} families</p><button className="load-more-button" disabled={loadingMore} onClick={loadMore}>{loadingMore ? 'Loading catalog' : 'Show 48 more'} <ArrowRight size={16} /></button></div>}
+          <nav className="side-footer" aria-label="Footer">
+            <a href="/terms.html">Terms</a>
+            <a href="/privacy.html">Privacy</a>
+            <a href="https://github.com/kunthive-Labs/Akshari">Contribute</a>
+          </nav>
         </div>
-      </section>
+      </aside>
 
-      <section className="preset-section" id="presets"><div><span className="eyebrow">Context presets</span><h2>Start with the job<br />the type needs to do.</h2></div><div className="preset-list">{PRESETS.map(([name, ...tags]) => <button key={name} onClick={() => { setQuery(''); setActiveTags(tags.map(titleCase)) }}><span>{name}</span><small>{tags.map(titleCase).join(' · ')}</small><ArrowRight size={17} /></button>)}</div></section>
-    </main>
+      <main className="workspace">
+        <div className="workspace-head">
+          <label className="search-box grain" htmlFor="font-search">
+            <MagnifyingGlass size={22} />
+            <input id="font-search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Describe what you need, like “warm, trustworthy fintech”" />
+            <kbd>/</kbd>
+          </label>
+          {!query && <div className="suggestions">
+            <span>Try</span>
+            {['Modern and trustworthy', 'Warm and human', 'Technical and precise'].map(term => <button key={term} type="button" onClick={() => setQuery(term)}>{term}</button>)}
+          </div>}
+          <div className="workspace-bar">
+            <div>
+              <span className="results-status" aria-live="polite">{loading ? 'Reading the catalog' : catalogMessage || 'Every family, arranged by fit'}</span>
+              <h2 className="results-count">{results.length.toLocaleString()} {results.length === 1 ? 'family' : 'families'}</h2>
+            </div>
+            <label className="sort">Sort <select value={sort} onChange={event => setSort(event.target.value)}><option value="match">Best match</option><option value="name">A to Z</option></select></label>
+          </div>
+          {activeTags.length > 0 && <div className="active-filters">{activeTags.map(tag => <Pill key={tag} active onClick={() => toggleTag(tag)}>{tag} <X size={12} /></Pill>)}</div>}
+        </div>
 
-    <footer className="site-footer" id="about"><p>Fontscape is an open-source tool for choosing type more thoughtfully.</p><div><a href="/terms.html">Terms</a><a href="/privacy.html">Privacy</a><a href="https://github.com/kunthive/fontscape">Contribute</a></div></footer>
-    {compared.length > 0 && <aside className="compare-tray" aria-live="polite"><div><span>Compare</span><strong>{compared.length} of 4</strong></div><div className="tray-fonts">{compared.map(font => <button key={font.name} onClick={() => setPreviewFont(font)}><span>{font.initials}</span>{font.name}<X size={13} onClick={event => { event.stopPropagation(); toggleCompare(font) }} /></button>)}</div><button onClick={() => notify('Comparison view is ready for the selected families.')}>Compare fonts <ArrowRight size={16} /></button></aside>}
+        <div className="workspace-scroll" id="results" tabIndex={-1}>
+          {shown.length ? <div className={`font-grid ${loading ? 'is-busy' : ''}`} aria-busy={loading || loadingMore}>
+            {shown.map((font, index) => <FontCard key={font.id || font.name} font={font} index={index} isTop={sort === 'match' && index === 0 && font.score > 0} compared={compared.some(item => item.name === font.name)} onPreview={setPreviewFont} onCompare={toggleCompare} />)}
+            {loadingMore && Array.from({ length: 6 }).map((_, index) => <SkeletonCard key={`skeleton-${index}`} />)}
+          </div> : <div className="card empty grain"><h3>No families in that direction</h3><p>Try fewer filters, or describe the job the type needs to do.</p><button type="button" className="btn-ghost" onClick={() => { setQuery(''); setActiveTags([]) }}>Reset search</button></div>}
+          {shown.length > 0 && shown.length < totalResults && <div className="load-more"><p>Showing {shown.length.toLocaleString()} of {totalResults.toLocaleString()}</p><button type="button" className="btn-primary" disabled={loadingMore} onClick={loadMore}>{loadingMore ? 'Loading' : 'Show 48 more'} <ArrowRight size={15} /></button></div>}
+        </div>
+      </main>
+    </div>
+
+    {compared.length > 0 && <aside className="card compare-tray grain" aria-live="polite">
+      <div className="tray-label"><span>Compare</span><strong>{compared.length} of 4</strong></div>
+      <div className="tray-items">{compared.map(font => <div key={font.name} className="tray-item">
+        <button type="button" className="tray-open" onClick={() => setPreviewFont(font)}><span aria-hidden="true">{font.initials}</span>{font.name}</button>
+        <button type="button" className="tray-remove" aria-label={`Remove ${font.name}`} onClick={() => toggleCompare(font)}><X size={13} /></button>
+      </div>)}</div>
+      <button type="button" className="btn-primary" onClick={() => notify('Comparison view is ready for the selected families.')}>Compare <ArrowRight size={15} /></button>
+    </aside>}
     {previewFont && <PreviewDialog font={previewFont} pageTheme={theme} onClose={() => setPreviewFont(null)} />}
-    {toast && <div className="toast" role="status"><Check size={17} weight="bold" />{toast}</div>}
+    {toast && <div className="toast" role="status"><Check size={15} weight="bold" />{toast}</div>}
   </div>
 }
 
