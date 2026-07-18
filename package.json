@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview",
+    "preview": "npm run build && wrangler dev",
     "dev:api": "node --watch server/index.mjs",
     "start:api": "node server/index.mjs",
     "db:migrate": "node server/scripts/migrate.mjs",
@@ -15,17 +15,21 @@
     "pipeline": "python3 pipeline/fontscape_pipeline.py",
     "test": "node --test server/**/*.test.mjs",
     "test:smoke": "bash ops/smoke-test.sh",
-    "check": "npm run build && npm test"
+    "check": "npm run build && npm test",
+    "deploy": "npm run build && wrangler deploy"
   },
   "dependencies": {
+    "@fastify/cors": "^11.0.0",
     "@phosphor-icons/react": "^2.1.10",
     "@vitejs/plugin-react": "^5.0.4",
-    "@fastify/cors": "^11.0.0",
     "fastify": "^5.2.1",
     "pg": "^8.13.1",
-    "vite": "^7.1.7",
     "react": "^19.1.1",
-    "react-dom": "^19.1.1"
+    "react-dom": "^19.1.1",
+    "vite": "^7.1.7"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.45.1",
+    "wrangler": "^4.112.0"
+  }
 }

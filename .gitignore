@@ -7,3 +7,9 @@ pipeline/data
 pipeline/specimens
 pipeline/fonts
 backups
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example
+!.env.example
