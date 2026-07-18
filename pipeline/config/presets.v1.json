@@ -1,0 +1,7 @@
+[
+  {"id":"ai-saas","name":"AI / SaaS startup","tags":["modern","trustworthy","ui-product"]},
+  {"id":"editorial","name":"Editorial / blog","tags":["editorial","elegant"]},
+  {"id":"luxury-brand","name":"Luxury brand","tags":["luxurious","elegant","branding"]},
+  {"id":"dev-tool","name":"Dev tool / technical","tags":["technical","dev-tool"]},
+  {"id":"playful-consumer","name":"Playful consumer app","tags":["playful","friendly","rounded"]}
+]

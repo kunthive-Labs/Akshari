@@ -1,0 +1,9 @@
+{
+  "version": "v1",
+  "buckets": {
+    "mood": ["modern", "trustworthy", "playful", "elegant", "bold", "friendly", "serious", "luxurious", "technical", "warm"],
+    "geometry": ["geometric", "humanist", "grotesk", "rounded", "angular"],
+    "era": ["contemporary", "retro", "futuristic", "classic", "brutalist"],
+    "use_case": ["ui-product", "editorial", "display", "branding", "dev-tool", "monospace"]
+  }
+}

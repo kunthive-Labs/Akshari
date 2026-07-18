@@ -1,0 +1,5 @@
+[
+  {"family":"DM Sans","accepted_tags":["modern","trustworthy","grotesk","ui-product"],"notes":"Neutral, high-legibility baseline for product UI."},
+  {"family":"Fraunces","accepted_tags":["playful","elegant","editorial","display"],"notes":"Expressive high-contrast serif baseline."},
+  {"family":"IBM Plex Mono","accepted_tags":["technical","serious","dev-tool","monospace"],"notes":"Technical and code-adjacent baseline."}
+]
