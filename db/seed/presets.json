@@ -1,0 +1,7 @@
+[
+  {"id":"ai-saas","name":"AI / SaaS startup","description":"Clear, credible typefaces for product surfaces that need confidence without coldness.","tags":["modern","trustworthy","ui-product"],"sort_order":1},
+  {"id":"editorial","name":"Editorial / blog","description":"Text-led families with a distinctive reading texture and confident display options.","tags":["editorial","elegant"],"sort_order":2},
+  {"id":"luxury-brand","name":"Luxury brand","description":"Refined, expressive type for a considered brand point of view.","tags":["elegant","luxurious","branding"],"sort_order":3},
+  {"id":"dev-tool","name":"Dev tool / technical","description":"Precise, sturdy families for documentation, code-adjacent interfaces, and complex information.","tags":["technical","dev-tool"],"sort_order":4},
+  {"id":"playful-consumer","name":"Playful consumer app","description":"Friendly, readable families with warmth and easy character.","tags":["playful","friendly","rounded"],"sort_order":5}
+]
