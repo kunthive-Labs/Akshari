@@ -12,6 +12,7 @@
     "db:migrate": "node server/scripts/migrate.mjs",
     "db:seed": "node server/scripts/seed.mjs",
     "db:import-google-fonts": "node server/scripts/import-google-catalog.mjs",
+    "db:export": "node server/scripts/export-catalog.mjs",
     "pipeline": "python3 pipeline/fontscape_pipeline.py",
     "test": "node --test server/**/*.test.mjs",
     "test:smoke": "bash ops/smoke-test.sh",
