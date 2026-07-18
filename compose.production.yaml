@@ -1,0 +1,15 @@
+services:
+  db:
+    restart: unless-stopped
+    ports: []
+
+  api:
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      TRUST_PROXY_HOPS: 1
+
+  web:
+    restart: unless-stopped
+    ports:
+      - "${HTTP_PORT:-3000}:80"

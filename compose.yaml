@@ -1,0 +1,50 @@
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: fontscape
+      POSTGRES_USER: fontscape
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fontscape}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fontscape -d fontscape"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    environment:
+      DATABASE_URL: postgres://fontscape:${POSTGRES_PASSWORD:-fontscape}@db:5432/fontscape
+      HOST: 0.0.0.0
+      PORT: 8787
+      CORS_ORIGIN: ${PUBLIC_ORIGIN:-http://localhost:3000}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      RATE_LIMIT_PER_MINUTE: ${RATE_LIMIT_PER_MINUTE:-180}
+    depends_on:
+      db:
+        condition: service_healthy
+    command: sh -c "npm run db:migrate && npm run db:seed && npm run start:api"
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:8787/health/ready').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    ports:
+      - "3000:80"
+    volumes:
+      - ./pipeline/fonts:/usr/share/nginx/html/fonts:ro
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  postgres-data:
