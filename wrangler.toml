@@ -1,0 +1,14 @@
+# Cloudflare Pages configuration for Fontscape (frontend + API Functions).
+# Dashboard equivalents when connecting the Git repo: Build command
+# `npm run build`, Build output directory `dist`. This file also supplies the
+# Functions runtime settings used by `wrangler pages deploy` / `pages dev`.
+name = "akshari"
+compatibility_date = "2024-11-06"
+compatibility_flags = ["nodejs_compat"]
+pages_build_output_dir = "dist"
+
+# The /api/* Function connects to your Neon Postgres. Set DATABASE_URL in the
+# dashboard (Settings > Variables and Secrets) as an encrypted variable for
+# Production and Preview. Uncomment below only for local `wrangler pages dev`:
+# [vars]
+# DATABASE_URL = "postgresql://USER:PASSWORD@ep-xxxx.neon.tech/neondb?sslmode=require"
