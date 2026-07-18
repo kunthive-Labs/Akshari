@@ -1,0 +1,31 @@
+{
+  "name": "fontscape",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "dev:api": "node --watch server/index.mjs",
+    "start:api": "node server/index.mjs",
+    "db:migrate": "node server/scripts/migrate.mjs",
+    "db:seed": "node server/scripts/seed.mjs",
+    "db:import-google-fonts": "node server/scripts/import-google-catalog.mjs",
+    "pipeline": "python3 pipeline/fontscape_pipeline.py",
+    "test": "node --test server/**/*.test.mjs",
+    "test:smoke": "bash ops/smoke-test.sh",
+    "check": "npm run build && npm test"
+  },
+  "dependencies": {
+    "@phosphor-icons/react": "^2.1.10",
+    "@vitejs/plugin-react": "^5.0.4",
+    "@fastify/cors": "^11.0.0",
+    "fastify": "^5.2.1",
+    "pg": "^8.13.1",
+    "vite": "^7.1.7",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
+  },
+  "devDependencies": {}
+}
