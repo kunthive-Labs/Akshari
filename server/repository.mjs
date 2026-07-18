@@ -1,4 +1,4 @@
-import { explainSimilarity, inferTags, scoreFont } from './search.mjs'
+import { explainSimilarity, scoreCatalog, searchCatalog } from './search.mjs'
 
 const detailQuery = `
   SELECT f.*, COALESCE(json_agg(DISTINCT jsonb_build_object('tag', ft.tag, 'confidence', ft.confidence))
@@ -20,27 +20,21 @@ function mapFont(row) {
   }
 }
 
+// Raw catalog, one row per family, mapped but unscored. This is what the static
+// export (public/fonts.json) ships so the browser can score it client-side.
+export async function listAllFonts(db) {
+  const result = await db.query(`${detailQuery} GROUP BY f.id, ff.font_id ORDER BY f.family`)
+  return result.rows.map(mapFont)
+}
+
 export async function listFonts(db, { q = '', tags = [], limit = 36 } = {}) {
   const result = await db.query(`${detailQuery} GROUP BY f.id, ff.font_id ORDER BY f.family LIMIT $1`, [Math.min(Number(limit) || 36, 3000)])
-  const inferredTags = inferTags(q)
-  const normalizedTags = tags.map(tag => tag.toLowerCase())
-  return result.rows.map(mapFont)
-    .filter(font => normalizedTags.every(tag => font.tags.some(item => item.tag === tag)))
-    .map(font => ({ ...font, matchScore: Math.round(scoreFont(font, inferredTags, normalizedTags) * 100) }))
-    .filter(font => !q || font.matchScore > 0 || [font.family, font.category, font.description, ...font.tags.map(tag => tag.tag)].join(' ').toLowerCase().includes(q.toLowerCase()))
-    .sort((a, b) => b.matchScore - a.matchScore || a.family.localeCompare(b.family))
+  return scoreCatalog(result.rows.map(mapFont), q, tags)
 }
 
 export async function searchFonts(db, { q = '', tags = [], limit = 48, offset = 0 } = {}) {
-  const allFonts = await listFonts(db, { q, tags, limit: 3000 })
-  const safeLimit = Math.min(Math.max(Number(limit) || 48, 1), 100)
-  const safeOffset = Math.max(Number(offset) || 0, 0)
-  return {
-    total: allFonts.length,
-    offset: safeOffset,
-    limit: safeLimit,
-    fonts: allFonts.slice(safeOffset, safeOffset + safeLimit),
-  }
+  const result = await db.query(`${detailQuery} GROUP BY f.id, ff.font_id ORDER BY f.family LIMIT 3000`)
+  return searchCatalog(result.rows.map(mapFont), { q, tags, limit, offset })
 }
 
 export async function getFont(db, id) {

@@ -36,6 +36,27 @@ export function scoreFont(font, queryTags = [], explicitTags = []) {
   return matches.reduce((total, confidence) => total + confidence, 0) / requested.length
 }
 
+// The catalog pipeline: filter by explicit tags, score every family against the
+// query's inferred tags, drop non-matches, and rank. Pure and DB-free so the
+// browser and the Node/edge server run the exact same logic over the same data.
+export function scoreCatalog(fonts, q = '', tags = []) {
+  const inferredTags = inferTags(q)
+  const normalizedTags = tags.map(tag => tag.toLowerCase())
+  const needle = q.toLowerCase()
+  return fonts
+    .filter(font => normalizedTags.every(tag => font.tags.some(item => item.tag === tag)))
+    .map(font => ({ ...font, matchScore: Math.round(scoreFont(font, inferredTags, normalizedTags) * 100) }))
+    .filter(font => !q || font.matchScore > 0 || [font.family, font.category, font.description, ...font.tags.map(tag => tag.tag)].join(' ').toLowerCase().includes(needle))
+    .sort((a, b) => b.matchScore - a.matchScore || a.family.localeCompare(b.family))
+}
+
+export function searchCatalog(fonts, { q = '', tags = [], limit = 48, offset = 0 } = {}) {
+  const scored = scoreCatalog(fonts, q, tags)
+  const safeLimit = Math.min(Math.max(Number(limit) || 48, 1), 100)
+  const safeOffset = Math.max(Number(offset) || 0, 0)
+  return { total: scored.length, offset: safeOffset, limit: safeLimit, fonts: scored.slice(safeOffset, safeOffset + safeLimit) }
+}
+
 export function explainSimilarity(source, candidate) {
   const facts = []
   if (source.features?.x_height_ratio && candidate.features?.x_height_ratio && Math.abs(source.features.x_height_ratio - candidate.features.x_height_ratio) < 0.035) facts.push('similar x-height')
