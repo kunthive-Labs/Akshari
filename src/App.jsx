@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   ArrowRight, Check, Copy, MagnifyingGlass, Moon, Plus, Sun, X,
 } from '@phosphor-icons/react'
+import { inferTags, scoreCatalog } from '../server/search.mjs'
 
 // A pangram: one sentence that carries every letter a to z, so each card shows
 // how the whole alphabet behaves in the family, not just a single glyph.
@@ -10,12 +11,17 @@ const UPPERCASE = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 const LOWERCASE = 'abcdefghijklmnopqrstuvwxyz'
 const FIGURES = '1234567890 & . , ; : ! ? @ # $ % ( ) “ ”'
 
-const FALLBACK_FONTS = [
-  { name: 'DM Sans', category: 'Low-contrast grotesk', tags: ['Modern', 'Readable', 'UI product'], rawTags: ['modern', 'readable', 'ui-product'], score: 89, weights: '400-700', note: 'Quietly capable for product interfaces.' },
-  { name: 'Manrope', category: 'Geometric sans', tags: ['Geometric', 'Friendly', 'SaaS'], rawTags: ['geometric', 'friendly', 'saas'], score: 91, weights: '400-800', note: 'Warm structure without losing precision.' },
-  { name: 'Space Grotesk', category: 'Neo-grotesk', tags: ['Technical', 'Distinctive', 'Modern'], rawTags: ['technical', 'distinctive', 'modern'], score: 84, weights: '400-700', note: 'A sharper edge for forward-looking tools.' },
-  { name: 'Fraunces', category: 'Old-style display', tags: ['Editorial', 'Elegant', 'Display'], rawTags: ['editorial', 'elegant', 'display'], score: 82, weights: '400-600', note: 'Characterful contrast for headlines with a voice.' },
+// Raw-shaped starter set (matching public/fonts.json), shown only if that static
+// export can't be fetched. It flows through the same scoring path as the real
+// catalog, so the UI behaves identically whether or not the fetch succeeds.
+const FALLBACK_CATALOG = [
+  { id: 'dm-sans', family: 'DM Sans', weights: [400, 500, 700], category: 'Low-contrast grotesk', description: 'Quietly capable for product interfaces.', tags: [{ tag: 'modern', confidence: 0.9 }, { tag: 'readable', confidence: 0.9 }, { tag: 'ui-product', confidence: 0.9 }], features: {} },
+  { id: 'manrope', family: 'Manrope', weights: [400, 600, 800], category: 'Geometric sans', description: 'Warm structure without losing precision.', tags: [{ tag: 'geometric', confidence: 0.9 }, { tag: 'friendly', confidence: 0.9 }, { tag: 'saas', confidence: 0.9 }], features: {} },
+  { id: 'space-grotesk', family: 'Space Grotesk', weights: [400, 500, 700], category: 'Neo-grotesk', description: 'A sharper edge for forward-looking tools.', tags: [{ tag: 'technical', confidence: 0.9 }, { tag: 'distinctive', confidence: 0.9 }, { tag: 'modern', confidence: 0.9 }], features: {} },
+  { id: 'fraunces', family: 'Fraunces', weights: [400, 600], category: 'Old-style display', description: 'Characterful contrast for headlines with a voice.', tags: [{ tag: 'editorial', confidence: 0.9 }, { tag: 'elegant', confidence: 0.9 }, { tag: 'display', confidence: 0.9 }], features: {} },
 ]
+
+const PAGE_SIZE = 48
 
 const FILTERS = {
   Personality: ['Modern', 'Trustworthy', 'Friendly', 'Technical', 'Elegant', 'Playful'],
@@ -33,8 +39,16 @@ const PRESETS = [
 function apiTag(label) { return label.toLowerCase().replaceAll(' ', '-') }
 function titleCase(tag) { return tag.replaceAll('-', ' ').replace(/\b\w/g, character => character.toUpperCase()) }
 
+// The "Copy CSS" payload, computed locally — byte-for-byte what the old
+// /api/fonts/:id/export?format=css endpoint returned.
+function exportCss(family, weights) {
+  const list = weights?.length ? weights : [400]
+  return `@import url('https://fonts.googleapis.com/css2?family=${family.replaceAll(' ', '+')}:wght@${list.join(';')}&display=swap');\n\n:root { --font-brand: '${family}', sans-serif; }`
+}
+
 function toDisplayFont(font) {
   const tags = (font.tags ?? []).map(tag => typeof tag === 'string' ? tag : tag.tag)
+  const weightList = font.weights?.length ? font.weights : [400]
   const weights = font.weights?.length ? `${Math.min(...font.weights)}-${Math.max(...font.weights)}` : '400'
   return {
     id: font.id,
@@ -47,6 +61,7 @@ function toDisplayFont(font) {
     rawTags: tags,
     score: font.matchScore ?? 0,
     weights,
+    weightList,
     note: font.description || 'Available in the Akshari catalog.',
   }
 }
@@ -128,17 +143,6 @@ function FontCard({ font, index, compared, isTop, onPreview, onCompare }) {
   </article>
 }
 
-function SkeletonCard() {
-  return <div className="card font-card skeleton-card" aria-hidden="true">
-    <div className="sk sk-specimen" />
-    <div className="sk-block">
-      <div className="sk sk-name" />
-      <div className="sk sk-line" />
-      <div className="sk-chips"><span className="sk sk-chip" /><span className="sk sk-chip" /></div>
-    </div>
-  </div>
-}
-
 function PreviewDialog({ font, pageTheme, onClose }) {
   const [previewTheme, setPreviewTheme] = useState(pageTheme)
   const [size, setSize] = useState(44)
@@ -175,11 +179,7 @@ function PreviewDialog({ font, pageTheme, onClose }) {
   }, [])
 
   const copy = async () => {
-    let value = `font-family: '${font.name}', sans-serif;`
-    if (font.id) {
-      try { value = (await (await fetch(`/api/fonts/${font.id}/export?format=css`)).json()).value ?? value } catch { /* Local fallback stays usable. */ }
-    }
-    await navigator.clipboard?.writeText(value)
+    await navigator.clipboard?.writeText(exportCss(font.name, font.weightList))
     setCopied(true)
     window.setTimeout(() => setCopied(false), 1800)
   }
@@ -223,11 +223,10 @@ function PreviewDialog({ font, pageTheme, onClose }) {
 
 function App() {
   const [query, setQuery] = useState('')
-  const [catalogFonts, setCatalogFonts] = useState(FALLBACK_FONTS)
-  const [totalResults, setTotalResults] = useState(FALLBACK_FONTS.length)
-  const [loading, setLoading] = useState(false)
-  const [loadingMore, setLoadingMore] = useState(false)
+  const [catalog, setCatalog] = useState(FALLBACK_CATALOG)
+  const [loading, setLoading] = useState(true)
   const [catalogMessage, setCatalogMessage] = useState('')
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
   // Default to light mode; only honour an explicit saved preference.
   const [theme, setTheme] = useState(() => localStorage.getItem('fontscape-theme') || 'light')
   const [activeTags, setActiveTags] = useState([])
@@ -251,47 +250,39 @@ function App() {
     localStorage.setItem('fontscape-theme', theme)
   }, [theme])
 
+  // Load the whole catalog once, straight from the static export. Every search,
+  // score, and page after this runs in the browser — no API, no round trips.
   useEffect(() => {
     const controller = new AbortController()
-    const timer = window.setTimeout(async () => {
-      setLoading(true)
-      try {
-        const tags = activeTags.map(apiTag).join(',')
-        const response = await fetch(`/api/search?${new URLSearchParams({ q: query, tags, limit: '48', offset: '0' })}`, { signal: controller.signal })
-        if (!response.ok) throw new Error('Catalog unavailable')
-        const payload = await response.json()
-        setCatalogFonts(payload.fonts.map(toDisplayFont))
-        setTotalResults(payload.total ?? payload.fonts.length)
-        setCatalogMessage(payload.inferredTags.length ? `Matched on ${payload.inferredTags.map(titleCase).join(', ')}` : '')
-      } catch (error) {
-        if (error.name !== 'AbortError') { setCatalogFonts(FALLBACK_FONTS); setTotalResults(FALLBACK_FONTS.length); setCatalogMessage('Showing the local starter set while the catalog reconnects.') }
-      } finally { if (!controller.signal.aborted) setLoading(false) }
-    }, 180)
-    return () => { controller.abort(); window.clearTimeout(timer) }
-  }, [query, activeTags])
+    fetch('/fonts.json', { signal: controller.signal })
+      .then(response => { if (!response.ok) throw new Error('Catalog unavailable'); return response.json() })
+      .then(fonts => { if (Array.isArray(fonts) && fonts.length) setCatalog(fonts) })
+      .catch(error => { if (error.name !== 'AbortError') setCatalogMessage('Showing the local starter set while the catalog reconnects.') })
+      .finally(() => { if (!controller.signal.aborted) setLoading(false) })
+    return () => controller.abort()
+  }, [])
+
+  // A new query or filter set starts pagination over at the first page.
+  useEffect(() => { setVisibleCount(PAGE_SIZE) }, [query, activeTags])
 
   const results = useMemo(() => {
-    const localFiltered = catalogFonts.filter(font => {
-      const searchable = `${font.name} ${font.category} ${font.rawTags.join(' ')}`.toLowerCase()
-      return activeTags.every(tag => searchable.includes(apiTag(tag))) && (!query || font.score > 0 || searchable.includes(query.toLowerCase()))
-    })
-    return [...localFiltered].sort((a, b) => sort === 'name' ? a.name.localeCompare(b.name) : b.score - a.score || a.name.localeCompare(b.name))
-  }, [activeTags, catalogFonts, query, sort])
+    const scored = scoreCatalog(catalog, query, activeTags.map(apiTag))
+    const ordered = sort === 'name' ? [...scored].sort((a, b) => a.family.localeCompare(b.family)) : scored
+    return ordered.map(toDisplayFont)
+  }, [catalog, query, activeTags, sort])
 
-  const shown = results
+  const inferredMessage = useMemo(() => {
+    const inferred = inferTags(query)
+    return inferred.length ? `Matched on ${inferred.map(titleCase).join(', ')}` : ''
+  }, [query])
+
+  const totalResults = results.length
+  const shown = useMemo(() => results.slice(0, visibleCount), [results, visibleCount])
+  const statusMessage = loading ? 'Reading the catalog' : (inferredMessage || catalogMessage || 'Every family, arranged by fit')
+
   const toggleTag = tag => setActiveTags(current => current.includes(tag) ? current.filter(item => item !== tag) : [...current, tag])
   const notify = message => { setToast(message); window.setTimeout(() => setToast(''), 2200) }
-  const loadMore = async () => {
-    setLoadingMore(true)
-    try {
-      const tags = activeTags.map(apiTag).join(',')
-      const response = await fetch(`/api/search?${new URLSearchParams({ q: query, tags, limit: '48', offset: String(catalogFonts.length) })}`)
-      if (!response.ok) throw new Error('Catalog unavailable')
-      const payload = await response.json()
-      setCatalogFonts(current => [...current, ...payload.fonts.map(toDisplayFont).filter(font => !current.some(item => item.id === font.id))])
-      setTotalResults(payload.total ?? totalResults)
-    } catch { notify('Could not load the next catalog page.') } finally { setLoadingMore(false) }
-  }
+  const loadMore = () => setVisibleCount(current => Math.min(current + PAGE_SIZE, totalResults))
   const toggleCompare = font => setCompared(current => current.some(item => item.name === font.name) ? current.filter(item => item.name !== font.name) : current.length < 4 ? [...current, font] : current)
 
   return <div className="app-shell">
@@ -353,8 +344,8 @@ function App() {
           </div>}
           <div className="workspace-bar">
             <div>
-              <span className="results-status" aria-live="polite">{loading ? 'Reading the catalog' : catalogMessage || 'Every family, arranged by fit'}</span>
-              <h2 className="results-count">{results.length.toLocaleString()} {results.length === 1 ? 'family' : 'families'}</h2>
+              <span className="results-status" aria-live="polite">{statusMessage}</span>
+              <h2 className="results-count">{shown.length.toLocaleString()} {shown.length === 1 ? 'family' : 'families'}</h2>
             </div>
             <label className="sort">Sort <select value={sort} onChange={event => setSort(event.target.value)}><option value="match">Best match</option><option value="name">A to Z</option></select></label>
           </div>
@@ -362,11 +353,10 @@ function App() {
         </div>
 
         <div className="workspace-scroll" id="results" tabIndex={-1}>
-          {shown.length ? <div className={`font-grid ${loading ? 'is-busy' : ''}`} aria-busy={loading || loadingMore}>
+          {shown.length ? <div className={`font-grid ${loading ? 'is-busy' : ''}`} aria-busy={loading}>
             {shown.map((font, index) => <FontCard key={font.id || font.name} font={font} index={index} isTop={sort === 'match' && index === 0 && font.score > 0} compared={compared.some(item => item.name === font.name)} onPreview={setPreviewFont} onCompare={toggleCompare} />)}
-            {loadingMore && Array.from({ length: 6 }).map((_, index) => <SkeletonCard key={`skeleton-${index}`} />)}
           </div> : <div className="card empty grain"><h3>No families in that direction</h3><p>Try fewer filters, or describe the job the type needs to do.</p><button type="button" className="btn-ghost" onClick={() => { setQuery(''); setActiveTags([]) }}>Reset search</button></div>}
-          {shown.length > 0 && shown.length < totalResults && <div className="load-more"><p>Showing {shown.length.toLocaleString()} of {totalResults.toLocaleString()}</p><button type="button" className="btn-primary" disabled={loadingMore} onClick={loadMore}>{loadingMore ? 'Loading' : 'Show 48 more'} <ArrowRight size={15} /></button></div>}
+          {shown.length > 0 && shown.length < totalResults && <div className="load-more"><p>Showing {shown.length.toLocaleString()} of {totalResults.toLocaleString()}</p><button type="button" className="btn-primary" onClick={loadMore}>Show {PAGE_SIZE} more <ArrowRight size={15} /></button></div>}
         </div>
       </main>
     </div>
