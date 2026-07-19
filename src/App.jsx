@@ -110,6 +110,32 @@ function useSpecimenFont(name, active) {
   return ready
 }
 
+function useFocusTrap(ref) {
+  useEffect(() => {
+    const node = ref.current
+    if (!node) return undefined
+    const previouslyFocused = document.activeElement
+    const getFocusable = () => Array.from(
+      node.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'),
+    ).filter(element => !element.disabled && element.offsetParent !== null)
+    getFocusable()[0]?.focus()
+    const onKeyDown = event => {
+      if (event.key !== 'Tab') return
+      const items = getFocusable()
+      if (!items.length) return
+      const first = items[0]
+      const last = items[items.length - 1]
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus() }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus() }
+    }
+    node.addEventListener('keydown', onKeyDown)
+    return () => {
+      node.removeEventListener('keydown', onKeyDown)
+      if (previouslyFocused instanceof HTMLElement) previouslyFocused.focus()
+    }
+  }, [ref])
+}
+
 function Pill({ children, active, onClick }) {
   return <button type="button" className={`pill ${active ? 'is-active' : ''}`} onClick={onClick} aria-pressed={active}>{children}</button>
 }
@@ -152,31 +178,7 @@ function PreviewDialog({ font, pageTheme, onClose }) {
   const dialogRef = useRef(null)
   const ready = useSpecimenFont(font.name, true)
   const family = ready ? `'${font.name}', var(--font-display)` : 'var(--font-display)'
-
-  // Trap Tab focus inside the dialog and restore focus to the trigger on close.
-  useEffect(() => {
-    const node = dialogRef.current
-    if (!node) return undefined
-    const previouslyFocused = document.activeElement
-    const getFocusable = () => Array.from(
-      node.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'),
-    ).filter(element => !element.disabled && element.offsetParent !== null)
-    getFocusable()[0]?.focus()
-    const onKeyDown = event => {
-      if (event.key !== 'Tab') return
-      const items = getFocusable()
-      if (!items.length) return
-      const first = items[0]
-      const last = items[items.length - 1]
-      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus() }
-      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus() }
-    }
-    node.addEventListener('keydown', onKeyDown)
-    return () => {
-      node.removeEventListener('keydown', onKeyDown)
-      if (previouslyFocused instanceof HTMLElement) previouslyFocused.focus()
-    }
-  }, [])
+  useFocusTrap(dialogRef)
 
   const copy = async () => {
     await navigator.clipboard?.writeText(exportCss(font.name, font.weightList))
@@ -221,6 +223,67 @@ function PreviewDialog({ font, pageTheme, onClose }) {
   </div>
 }
 
+function CompareColumn({ font, size, weight, sample, onRemove }) {
+  const ready = useSpecimenFont(font.name, true)
+  const family = ready ? `'${font.name}', var(--font-display)` : 'var(--font-display)'
+  const [copied, setCopied] = useState(false)
+
+  const copy = async () => {
+    await navigator.clipboard?.writeText(exportCss(font.name, font.weightList))
+    setCopied(true)
+    window.setTimeout(() => setCopied(false), 1800)
+  }
+
+  return <div className="compare-column" style={{ '--tester-family': family, '--tester-size': `${size}px`, '--tester-weight': weight }}>
+    <div className="compare-column-head">
+      <div>
+        <h3>{font.name}</h3>
+        <p>{font.category}{font.weights ? ` · ${font.weights}` : ''}</p>
+      </div>
+      <button type="button" className="compare-remove" aria-label={`Remove ${font.name}`} onClick={onRemove}><X size={13} /></button>
+    </div>
+    <p className="compare-sample-text">{sample}</p>
+    <button type="button" className={`btn-ghost compare-copy ${copied ? 'is-success' : ''}`} onClick={copy}>{copied ? <Check size={14} weight="bold" /> : <Copy size={14} />}{copied ? 'Copied' : 'Copy CSS'}</button>
+  </div>
+}
+
+function CompareView({ fonts, pageTheme, onRemove, onClose }) {
+  const [theme, setTheme] = useState(pageTheme)
+  const [size, setSize] = useState(44)
+  const [weight, setWeight] = useState(400)
+  const [sample, setSample] = useState(PANGRAM)
+  const panelRef = useRef(null)
+  useFocusTrap(panelRef)
+
+  useEffect(() => { if (fonts.length === 0) onClose() }, [fonts.length, onClose])
+
+  return <div className="modal" role="presentation" onMouseDown={onClose}>
+    <section ref={panelRef} className="card compare-view" data-theme={theme} role="dialog" aria-modal="true" aria-labelledby="compare-title" onMouseDown={event => event.stopPropagation()}>
+      <header className="dialog-head">
+        <div>
+          <span className="section-label eyebrow">Side by side</span>
+          <h2 className="dialog-title" id="compare-title">Compare families <span className="compare-count">{fonts.length} of 4</span></h2>
+        </div>
+        <button type="button" className="icon-btn" onClick={onClose} aria-label="Close comparison"><X size={20} /></button>
+      </header>
+
+      <div className="dialog-controls compare-controls">
+        <div className="segmented" role="group" aria-label="Specimen paper">
+          <button type="button" className={theme === 'light' ? 'is-active' : ''} onClick={() => setTheme('light')} aria-pressed={theme === 'light'}><Sun size={14} /> Light</button>
+          <button type="button" className={theme === 'dark' ? 'is-active' : ''} onClick={() => setTheme('dark')} aria-pressed={theme === 'dark'}><Moon size={14} /> Dark</button>
+        </div>
+        <label className="control">Size <input type="range" min="24" max="96" value={size} onChange={event => setSize(Number(event.target.value))} aria-label="Preview size in pixels" /><output>{size}px</output></label>
+        <label className="control">Weight <select value={weight} onChange={event => setWeight(Number(event.target.value))}><option value={400}>Regular</option><option value={600}>Semibold</option></select></label>
+        <input className="compare-sample-input" value={sample} onChange={event => setSample(event.target.value)} aria-label="Type your own preview text" spellCheck="false" placeholder="Type anything to test it" />
+      </div>
+
+      <div className="compare-columns">
+        {fonts.map(font => <CompareColumn key={font.name} font={font} size={size} weight={weight} sample={sample} onRemove={() => onRemove(font)} />)}
+      </div>
+    </section>
+  </div>
+}
+
 function App() {
   const [query, setQuery] = useState('')
   const [catalog, setCatalog] = useState(FALLBACK_CATALOG)
@@ -233,14 +296,14 @@ function App() {
   const [sort, setSort] = useState('match')
   const [previewFont, setPreviewFont] = useState(null)
   const [compared, setCompared] = useState([])
-  const [toast, setToast] = useState('')
+  const [compareOpen, setCompareOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const loadMoreRef = useRef(null)
 
   useEffect(() => {
     const keydown = event => {
       if (event.key === '/' && document.activeElement?.tagName !== 'INPUT') { event.preventDefault(); document.getElementById('font-search')?.focus() }
-      if (event.key === 'Escape') setPreviewFont(null)
+      if (event.key === 'Escape') { setPreviewFont(null); setCompareOpen(false) }
     }
     window.addEventListener('keydown', keydown)
     return () => window.removeEventListener('keydown', keydown)
@@ -284,7 +347,6 @@ function App() {
   const hasMore = shown.length > 0 && shown.length < totalResults
 
   const toggleTag = tag => setActiveTags(current => current.includes(tag) ? current.filter(item => item !== tag) : [...current, tag])
-  const notify = message => { setToast(message); window.setTimeout(() => setToast(''), 2200) }
   const loadMore = () => setVisibleCount(current => Math.min(current + PAGE_SIZE, totalResults))
   const toggleCompare = font => setCompared(current => current.some(item => item.name === font.name) ? current.filter(item => item.name !== font.name) : current.length < 4 ? [...current, font] : current)
 
@@ -383,10 +445,10 @@ function App() {
         <button type="button" className="tray-open" onClick={() => setPreviewFont(font)}><span aria-hidden="true">{font.initials}</span>{font.name}</button>
         <button type="button" className="tray-remove" aria-label={`Remove ${font.name}`} onClick={() => toggleCompare(font)}><X size={13} /></button>
       </div>)}</div>
-      <button type="button" className="btn-primary" onClick={() => notify('Comparison view is ready for the selected families.')}>Compare <ArrowRight size={15} /></button>
+      <button type="button" className="btn-primary" onClick={() => setCompareOpen(true)}>Compare <ArrowRight size={15} /></button>
     </aside>}
     {previewFont && <PreviewDialog font={previewFont} pageTheme={theme} onClose={() => setPreviewFont(null)} />}
-    {toast && <div className="toast" role="status"><Check size={15} weight="bold" />{toast}</div>}
+    {compareOpen && compared.length > 0 && <CompareView fonts={compared} pageTheme={theme} onRemove={toggleCompare} onClose={() => setCompareOpen(false)} />}
   </div>
 }
 
