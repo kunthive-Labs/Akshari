@@ -370,21 +370,36 @@ kbd {
 .side-footer { margin-top: auto; padding-top: var(--step-2); display: flex; flex-wrap: wrap; gap: var(--step-1) var(--step-2); font-size: var(--text-xs); color: var(--ink-soft); }
 .side-footer a:hover { color: var(--ink); text-decoration: underline; }
 
-/* --- 6. Workspace (search head is fixed, only the grid below scrolls) ----- */
+/* --- 6. Workspace (search head shrinks on scroll, only the grid scrolls) -- */
 .workspace { min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
-.workspace-head { flex: none; display: flex; flex-direction: column; gap: var(--step-2); padding: var(--step-3) var(--step-3) var(--step-2); border-bottom: 1px solid var(--hairline); background: var(--paper-1); }
+.workspace-head {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--step-1);
+  padding: var(--step-2) var(--step-3);
+  border-bottom: 1px solid var(--hairline);
+  background: var(--paper-1);
+  transition: padding var(--dur) var(--ease);
+}
+/* Once the grid below is scrolled, fold the row of suggestion chips away and
+   tighten the search box so the header stops eating a fixed slice of the
+   viewport on shorter screens; it unfolds again back at the top. */
+.workspace-head.is-compact { padding-top: var(--step-1); padding-bottom: 10px; gap: 10px; }
+.workspace-head.is-compact .suggestions { display: none; }
+.workspace-head.is-compact .search-box { min-height: 44px; }
 
 .search-box {
   display: flex;
   align-items: center;
   gap: var(--step-1);
-  min-height: 56px;
+  min-height: 50px;
   padding: 0 var(--step-2);
   border: 1px solid var(--hairline);
   border-radius: var(--radius);
   background: var(--paper-0);
   box-shadow: var(--shadow-card);
-  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease), min-height var(--dur) var(--ease);
 }
 .search-box:focus-within { border-color: var(--accent-mid); box-shadow: var(--shadow-card), 0 0 0 3px var(--accent-tint); }
 .search-box svg { color: var(--accent-strong); flex: none; }
@@ -393,8 +408,8 @@ kbd {
 
 .suggestions { display: flex; align-items: center; flex-wrap: wrap; gap: var(--step-0); font-size: var(--text-sm); color: var(--ink-soft); }
 .suggestions button {
-  min-height: 32px;
-  padding: 4px var(--step-1);
+  min-height: 30px;
+  padding: 3px var(--step-1);
   border: 1px solid var(--hairline);
   border-radius: var(--radius-pill);
   background: transparent;
@@ -592,6 +607,14 @@ kbd {
 @keyframes fs-toast { from { opacity: 0; transform: translate(-50%, 10px); } }
 
 /* --- 16. Responsive ------------------------------------------------------ */
+/* Short viewports (small laptops, browser chrome eating into height): the
+   search head is sized for tall screens by default, so fold the suggestion
+   chips away here too rather than waiting for the user to scroll first. */
+@media (max-height: 760px) {
+  .workspace-head { padding-top: var(--step-1); padding-bottom: 10px; gap: 10px; }
+  .workspace-head .suggestions { display: none; }
+  .workspace-head .search-box { min-height: 44px; }
+}
 @media (max-width: 1000px) {
   .app-body { grid-template-columns: 224px minmax(0, 1fr); }
   .font-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
