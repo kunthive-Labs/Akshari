@@ -1,9 +1,10 @@
 # Cloudflare deploy configuration for Akshari.
 # The site is fully static — no Worker code and no database. The project's
 # deploy step runs `wrangler deploy`, which uploads ./dist as Workers Static
-# Assets (built by `npm run build`, Vite -> dist). The _headers and _redirects
-# files inside dist supply the security headers and the SPA fallback;
-# not_found_handling below is the same fallback expressed natively.
+# Assets (built by `npm run build`, Vite -> dist). The _headers file inside
+# dist supplies the security headers; not_found_handling below is the SPA
+# fallback (a _redirects rule for the same thing causes an infinite-loop
+# error under Workers Static Assets' automatic .html/index stripping).
 name = "akshari"
 compatibility_date = "2024-11-06"
 

@@ -1,4 +1,0 @@
-# Existing files (/, /terms.html, /privacy.html, /assets/*, /fonts.json,
-# /presets.json) are served first; only unmatched paths fall through to the app
-# shell. The app has no client-side router, so this is just a safety net.
-/*    /index.html   200
