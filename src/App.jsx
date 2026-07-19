@@ -235,6 +235,7 @@ function App() {
   const [compared, setCompared] = useState([])
   const [toast, setToast] = useState('')
   const [scrolled, setScrolled] = useState(false)
+  const loadMoreRef = useRef(null)
 
   useEffect(() => {
     const keydown = event => {
@@ -280,11 +281,25 @@ function App() {
   const totalResults = results.length
   const shown = useMemo(() => results.slice(0, visibleCount), [results, visibleCount])
   const statusMessage = loading ? 'Reading the catalog' : (inferredMessage || catalogMessage || 'Every family, arranged by fit')
+  const hasMore = shown.length > 0 && shown.length < totalResults
 
   const toggleTag = tag => setActiveTags(current => current.includes(tag) ? current.filter(item => item !== tag) : [...current, tag])
   const notify = message => { setToast(message); window.setTimeout(() => setToast(''), 2200) }
   const loadMore = () => setVisibleCount(current => Math.min(current + PAGE_SIZE, totalResults))
   const toggleCompare = font => setCompared(current => current.some(item => item.name === font.name) ? current.filter(item => item.name !== font.name) : current.length < 4 ? [...current, font] : current)
+
+  // Infinite scroll: load the next page a little before the "Show more" row
+  // actually reaches the viewport, so scrolling alone keeps the grid filling.
+  // The button stays as a manual fallback and a "there's more" affordance.
+  useEffect(() => {
+    const node = loadMoreRef.current
+    if (!hasMore || !node || !('IntersectionObserver' in window)) return undefined
+    const observer = new IntersectionObserver(entries => {
+      if (entries.some(entry => entry.isIntersecting)) loadMore()
+    }, { rootMargin: '600px 0px' })
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [hasMore, totalResults])
 
   return <div className="app-shell">
     <a className="skip-link" href="#results">Skip to results</a>
@@ -357,7 +372,7 @@ function App() {
           {shown.length ? <div className={`font-grid ${loading ? 'is-busy' : ''}`} aria-busy={loading}>
             {shown.map((font, index) => <FontCard key={font.id || font.name} font={font} index={index} isTop={sort === 'match' && index === 0 && font.score > 0} compared={compared.some(item => item.name === font.name)} onPreview={setPreviewFont} onCompare={toggleCompare} />)}
           </div> : <div className="card empty grain"><h3>No families in that direction</h3><p>Try fewer filters, or describe the job the type needs to do.</p><button type="button" className="btn-ghost" onClick={() => { setQuery(''); setActiveTags([]) }}>Reset search</button></div>}
-          {shown.length > 0 && shown.length < totalResults && <div className="load-more"><p>Showing {shown.length.toLocaleString()} of {totalResults.toLocaleString()}</p><button type="button" className="btn-primary" onClick={loadMore}>Show {PAGE_SIZE} more <ArrowRight size={15} /></button></div>}
+          {hasMore && <div ref={loadMoreRef} className="load-more"><p>Showing {shown.length.toLocaleString()} of {totalResults.toLocaleString()}</p><button type="button" className="btn-primary" onClick={loadMore}>Show {PAGE_SIZE} more <ArrowRight size={15} /></button></div>}
         </div>
       </main>
     </div>
