@@ -234,6 +234,7 @@ function App() {
   const [previewFont, setPreviewFont] = useState(null)
   const [compared, setCompared] = useState([])
   const [toast, setToast] = useState('')
+  const [scrolled, setScrolled] = useState(false)
 
   useEffect(() => {
     const keydown = event => {
@@ -332,7 +333,7 @@ function App() {
       </aside>
 
       <main className="workspace">
-        <div className="workspace-head">
+        <div className={`workspace-head ${scrolled ? 'is-compact' : ''}`}>
           <label className="search-box grain" htmlFor="font-search">
             <MagnifyingGlass size={22} />
             <input id="font-search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Describe what you need, like “warm, trustworthy fintech”" />
@@ -352,7 +353,7 @@ function App() {
           {activeTags.length > 0 && <div className="active-filters">{activeTags.map(tag => <Pill key={tag} active onClick={() => toggleTag(tag)}>{tag} <X size={12} /></Pill>)}</div>}
         </div>
 
-        <div className="workspace-scroll" id="results" tabIndex={-1}>
+        <div className="workspace-scroll" id="results" tabIndex={-1} onScroll={event => setScrolled(event.currentTarget.scrollTop > 12)}>
           {shown.length ? <div className={`font-grid ${loading ? 'is-busy' : ''}`} aria-busy={loading}>
             {shown.map((font, index) => <FontCard key={font.id || font.name} font={font} index={index} isTop={sort === 'match' && index === 0 && font.score > 0} compared={compared.some(item => item.name === font.name)} onPreview={setPreviewFont} onCompare={toggleCompare} />)}
           </div> : <div className="card empty grain"><h3>No families in that direction</h3><p>Try fewer filters, or describe the job the type needs to do.</p><button type="button" className="btn-ghost" onClick={() => { setQuery(''); setActiveTags([]) }}>Reset search</button></div>}
