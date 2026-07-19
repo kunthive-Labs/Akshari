@@ -1,9 +1,12 @@
-# Cloudflare Pages configuration for Akshari.
-# The site is fully static: the catalog ships as public/fonts.json +
-# public/presets.json and all search/scoring runs in the browser, so there is
-# no Functions runtime, no database, and no secrets to configure.
-# Dashboard equivalents when connecting the Git repo: Build command
-# `npm run build`, Build output directory `dist`.
+# Cloudflare deploy configuration for Akshari.
+# The site is fully static — no Worker code and no database. The project's
+# deploy step runs `wrangler deploy`, which uploads ./dist as Workers Static
+# Assets (built by `npm run build`, Vite -> dist). The _headers and _redirects
+# files inside dist supply the security headers and the SPA fallback;
+# not_found_handling below is the same fallback expressed natively.
 name = "akshari"
 compatibility_date = "2024-11-06"
-pages_build_output_dir = "dist"
+
+[assets]
+directory = "./dist"
+not_found_handling = "single-page-application"
