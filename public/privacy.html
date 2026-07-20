@@ -4,14 +4,16 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="color-scheme" content="light dark" />
-    <meta name="description" content="Akshari privacy notice." />
+    <meta name="description" content="Akshari privacy notice: what data is processed, the legal basis for processing it, cookies and similar technologies, and your rights under GDPR." />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://akshari.kunthive.in/privacy.html" />
     <title>Privacy notice - Akshari</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500&family=Inter:wght@400;500&display=swap" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500&family=Inter:wght@400;500;600&display=swap" />
     <style>
-      :root { color-scheme: light; --bg:#F4F1EA; --ink:#1C1A16; --soft:#4A473F; --accent:#1E4A72; }
-      @media (prefers-color-scheme: dark) { :root { color-scheme: dark; --bg:#17150F; --ink:#F2EEE5; --soft:#C4BEB0; --accent:#A9C8E3; } }
+      :root { color-scheme: light; --bg:#F4F1EA; --ink:#1C1A16; --soft:#4A473F; --muted:#8A8577; --accent:#1E4A72; --tint:#E4ECF3; --line:rgba(28,26,22,.12); }
+      @media (prefers-color-scheme: dark) { :root { color-scheme: dark; --bg:#17150F; --ink:#F2EEE5; --soft:#C4BEB0; --muted:#8C877A; --accent:#A9C8E3; --tint:#1E2C3A; --line:rgba(242,238,229,.1); } }
       * { box-sizing: border-box; }
       body { max-width: 720px; margin: 0 auto; padding: 64px 24px 96px; background: var(--bg); color: var(--ink); font: 16px/1.65 'Inter', system-ui, sans-serif; }
       a { color: var(--accent); text-decoration: none; }
@@ -19,23 +21,106 @@
       .back { display: inline-block; margin-bottom: 40px; font-size: 14px; }
       h1 { margin: 0 0 4px; font-family: 'Fraunces', Georgia, serif; font-weight: 400; font-size: 42px; letter-spacing: -.02em; }
       h2 { margin: 40px 0 8px; font-family: 'Fraunces', Georgia, serif; font-weight: 500; font-size: 21px; letter-spacing: -.01em; }
+      h3 { margin: 20px 0 6px; font-size: 14px; font-weight: 600; color: var(--ink); }
       p { max-width: 65ch; color: var(--soft); }
+      ul { margin: 8px 0; padding-left: 20px; max-width: 62ch; color: var(--soft); }
+      li { margin: 4px 0; }
       .updated { font-size: 14px; }
+      table { width: 100%; max-width: 62ch; margin-top: 12px; border-collapse: collapse; font-size: 14px; }
+      th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+      th { color: var(--ink); font-weight: 600; }
+      td { color: var(--soft); }
+      .toc { margin: 28px 0 0; padding: 16px 20px; border: 1px solid var(--line); border-radius: 6px; font-size: 14px; }
+      .toc strong { display: block; margin-bottom: 6px; }
+      .toc ol { margin: 0; padding-left: 18px; columns: 2; column-gap: 24px; }
+      .toc li { margin: 2px 0; }
     </style>
   </head>
   <body>
     <a class="back" href="/">← Back to Akshari</a>
     <h1>Privacy notice</h1>
-    <p class="updated">Last updated: July 18, 2026</p>
-    <h2>Data we process</h2>
-    <p>Akshari does not require accounts. The service processes search terms, technical request metadata, and operational logs to provide and protect the service.</p>
-    <h2>Retention</h2>
-    <p>Operational logs are retained only for the period needed to diagnose reliability and security issues. Search terms are not sold or used for advertising.</p>
-    <h2>Cookies</h2>
-    <p>Akshari does not set advertising cookies. A local browser preference may store your selected appearance theme.</p>
-    <h2>Self-hosting</h2>
-    <p>Self-hosted operators control their own logs, backups, deployment configuration, and data retention. Review this notice and adapt it to your deployment.</p>
-    <h2>Contact</h2>
-    <p>For privacy requests, contact the maintainer through the project repository.</p>
+    <p class="updated">Last updated: July 19, 2026</p>
+    <p>This notice explains what Akshari (<strong>akshari.kunthive.in</strong>, "the service") processes about you, why, and what rights you have. It's written to comply with the EU/UK General Data Protection Regulation (GDPR) and the ePrivacy Directive.</p>
+
+    <nav class="toc" aria-label="Table of contents">
+      <strong>Contents</strong>
+      <ol>
+        <li>Who controls your data</li>
+        <li>What we process</li>
+        <li>Legal basis</li>
+        <li>Cookies &amp; local storage</li>
+        <li>Third parties</li>
+        <li>International transfers</li>
+        <li>Retention</li>
+        <li>Your rights</li>
+        <li>Security</li>
+        <li>Children</li>
+        <li>Changes</li>
+        <li>Contact</li>
+      </ol>
+    </nav>
+
+    <h2>1. Who controls your data</h2>
+    <p>Kunthive Labs operates akshari.kunthive.in and is the data controller for this deployment. If you are using a self-hosted instance run by someone else, that operator is the controller instead - see section 12.</p>
+
+    <h2>2. What we process</h2>
+    <p>Akshari has no accounts, no sign-in, and no forms that collect personal details. What it processes is limited to:</p>
+    <ul>
+      <li><strong>Search and filter input</strong> - the text and tags you use to browse the catalog, handled entirely in your browser against a static export of the catalog. It is not sent to, or stored on, our servers.</li>
+      <li><strong>Technical request metadata</strong> - standard web server/CDN logs (IP address, user agent, requested path, timestamp, status code) generated automatically when your browser loads the site.</li>
+      <li><strong>Local device storage</strong> - your appearance (light/dark) preference and your cookie-consent choice, stored only in your browser. See section 4.</li>
+      <li><strong>Font specimen requests</strong> - when a specimen loads, your browser requests that font file directly from Google's font-serving infrastructure. See section 5.</li>
+    </ul>
+
+    <h2>3. Legal basis</h2>
+    <table>
+      <tr><th>Processing</th><th>Basis</th></tr>
+      <tr><td>Request/operational logs</td><td>Legitimate interest (Art. 6(1)(f)) - keeping the service running, secure, and free of abuse</td></tr>
+      <tr><td>Preference storage (theme, consent record)</td><td>Consent (Art. 6(1)(a)) for non-essential storage, given via the cookie banner; the consent record itself is kept as a necessary function</td></tr>
+      <tr><td>Font file requests to Google</td><td>Your action of loading the page, which necessarily triggers direct browser-to-Google requests inherent to a Google Fonts browsing tool</td></tr>
+    </table>
+
+    <h2>4. Cookies &amp; local storage</h2>
+    <p>Akshari does not use advertising or tracking cookies, and does not run analytics. The cookie banner shown on first visit lets you choose what local storage is allowed:</p>
+    <table>
+      <tr><th>Category</th><th>What it stores</th><th>Consent required?</th></tr>
+      <tr><td>Necessary</td><td>Your consent choice itself (so we don't ask again every visit)</td><td>No - required to operate the banner</td></tr>
+      <tr><td>Preferences</td><td>Light/dark appearance, set only if you accept this category</td><td>Yes</td></tr>
+    </table>
+    <p>You can accept, reject, or change these choices at any time from "Cookie settings" in the site footer. Rejecting Preferences means your theme choice applies only to your current visit and is not remembered on your next one.</p>
+
+    <h2>5. Third parties</h2>
+    <p>Akshari is a Google Fonts browser, so loading it necessarily loads webfont CSS and font files from <code>fonts.googleapis.com</code> and <code>fonts.gstatic.com</code>. Those requests go directly from your browser to Google's servers - they are not proxied by us. Google states that this delivery does not use cookies and is not used to build advertising profiles, though the requests still reach Google's infrastructure and may be logged there for operational purposes. See <a href="https://policies.google.com/privacy">Google's privacy policy</a> for how Google handles that traffic.</p>
+    <p>Our hosting/CDN provider processes the request logs described in section 2 on our behalf, under its own data-processing terms.</p>
+
+    <h2>6. International transfers</h2>
+    <p>Font requests to Google and our hosting/CDN provider may be handled on infrastructure outside your country, including outside the EEA. Where that happens, the provider's standard safeguards (such as the EU Standard Contractual Clauses) apply.</p>
+
+    <h2>7. Retention</h2>
+    <p>Operational logs are retained only as long as needed to diagnose reliability and security issues, then deleted or aggregated. Search and filter input is never transmitted to us, so we retain none of it. Local storage (theme, consent record) stays on your device until you clear it or withdraw consent.</p>
+
+    <h2>8. Your rights</h2>
+    <p>Under GDPR you can ask us to:</p>
+    <ul>
+      <li>confirm what data we hold about you and get a copy (access);</li>
+      <li>correct inaccurate data (rectification);</li>
+      <li>delete data we hold (erasure), where applicable;</li>
+      <li>restrict or object to processing based on legitimate interest;</li>
+      <li>receive data you provided in a portable format (portability);</li>
+      <li>withdraw consent at any time, without affecting past lawful processing.</li>
+    </ul>
+    <p>Because Akshari collects so little personal data by design, most requests will simply confirm that no identifiable record exists beyond short-lived operational logs. You also have the right to lodge a complaint with your local data protection supervisory authority.</p>
+
+    <h2>9. Security</h2>
+    <p>The service is served over HTTPS, applies standard security response headers, and rate-limits requests to reduce abuse. No system is perfectly secure; report suspected vulnerabilities through the channel in section 12.</p>
+
+    <h2>10. Children</h2>
+    <p>Akshari is a general-audience design tool and is not directed at children. We do not knowingly collect personal data from children.</p>
+
+    <h2>11. Changes</h2>
+    <p>We may update this notice as the service changes. Material changes will update the date at the top of this page; continued use after a change means you accept the current version.</p>
+
+    <h2>12. Contact &amp; self-hosting</h2>
+    <p>For privacy requests or questions, contact the maintainer through the <a href="https://github.com/kunthive-Labs/Akshari">project repository</a>. Self-hosted operators control their own logs, backups, deployment configuration, and data retention, and should adapt this notice to describe their own deployment before publishing it.</p>
   </body>
 </html>
