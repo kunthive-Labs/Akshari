@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS font_tags (
   tag TEXT NOT NULL,
   confidence NUMERIC(4,3) NOT NULL CHECK (confidence >= 0 AND confidence <= 1),
   tag_version TEXT NOT NULL DEFAULT 'v1',
-  source TEXT NOT NULL DEFAULT 'pipeline' CHECK (source IN ('pipeline', 'curated', 'manual')),
+  source TEXT NOT NULL DEFAULT 'pipeline' CHECK (source IN ('pipeline', 'curated', 'manual', 'heuristic')),
   PRIMARY KEY (font_id, tag, tag_version)
 );
 
