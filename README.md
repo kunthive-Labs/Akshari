@@ -87,6 +87,16 @@ The included `pipeline/calibration/font-tags.v1.json` is the beginning of the ma
 
 The `download` stage writes self-hosted font files into `pipeline/fonts`. Docker serves that directory at `/fonts`, and the pipeline `write` stage records those asset URLs for the preview sandbox. A full catalog download is large, so run it in a persistent storage environment and back up the resulting volume.
 
+### Heuristic tagging (no API key, no database)
+
+The full `tag`/`embed`/`write` pipeline above needs an `ANTHROPIC_API_KEY`, downloaded font files, and a running Postgres instance. If you just want the whole catalog to have *some* tags - so search works everywhere, not just on the hand-curated demo fonts - run:
+
+```bash
+npm run catalog:tag-heuristic
+```
+
+This fetches Google's public font metadata endpoint (category, classifications, variable-font axes, per-weight stroke thickness) and derives tags from it with fixed rules, writing straight into `public/fonts.json`. It never touches a font that already has tags, so it's safe to re-run after the catalog grows, and every tag it writes is marked `source: "heuristic"` to distinguish it from hand-curated or Claude-tagged entries.
+
 ## Operations
 
 ```bash
