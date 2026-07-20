@@ -4,14 +4,16 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="color-scheme" content="light dark" />
-    <meta name="description" content="Akshari terms of use." />
+    <meta name="description" content="Akshari terms of use: the service, font licensing, acceptable use, intellectual property, warranty, and liability." />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://akshari.kunthive.in/terms.html" />
     <title>Terms of use - Akshari</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500&family=Inter:wght@400;500&display=swap" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500&family=Inter:wght@400;500;600&display=swap" />
     <style>
-      :root { color-scheme: light; --bg:#F4F1EA; --ink:#1C1A16; --soft:#4A473F; --accent:#1E4A72; }
-      @media (prefers-color-scheme: dark) { :root { color-scheme: dark; --bg:#17150F; --ink:#F2EEE5; --soft:#C4BEB0; --accent:#A9C8E3; } }
+      :root { color-scheme: light; --bg:#F4F1EA; --ink:#1C1A16; --soft:#4A473F; --muted:#8A8577; --accent:#1E4A72; --tint:#E4ECF3; --line:rgba(28,26,22,.12); }
+      @media (prefers-color-scheme: dark) { :root { color-scheme: dark; --bg:#17150F; --ink:#F2EEE5; --soft:#C4BEB0; --muted:#8C877A; --accent:#A9C8E3; --tint:#1E2C3A; --line:rgba(242,238,229,.1); } }
       * { box-sizing: border-box; }
       body { max-width: 720px; margin: 0 auto; padding: 64px 24px 96px; background: var(--bg); color: var(--ink); font: 16px/1.65 'Inter', system-ui, sans-serif; }
       a { color: var(--accent); text-decoration: none; }
@@ -20,22 +22,73 @@
       h1 { margin: 0 0 4px; font-family: 'Fraunces', Georgia, serif; font-weight: 400; font-size: 42px; letter-spacing: -.02em; }
       h2 { margin: 40px 0 8px; font-family: 'Fraunces', Georgia, serif; font-weight: 500; font-size: 21px; letter-spacing: -.01em; }
       p { max-width: 65ch; color: var(--soft); }
+      ul { margin: 8px 0; padding-left: 20px; max-width: 62ch; color: var(--soft); }
+      li { margin: 4px 0; }
       .updated { font-size: 14px; }
+      .toc { margin: 28px 0 0; padding: 16px 20px; border: 1px solid var(--line); border-radius: 6px; font-size: 14px; }
+      .toc strong { display: block; margin-bottom: 6px; }
+      .toc ol { margin: 0; padding-left: 18px; columns: 2; column-gap: 24px; }
+      .toc li { margin: 2px 0; }
     </style>
   </head>
   <body>
     <a class="back" href="/">← Back to Akshari</a>
     <h1>Terms of use</h1>
-    <p class="updated">Last updated: July 18, 2026</p>
-    <h2>Service</h2>
-    <p>Akshari provides typography discovery tools and metadata. The service is offered as-is and may change or be discontinued without notice.</p>
-    <h2>Font licenses</h2>
-    <p>Akshari indexes Google Fonts. Individual font files remain subject to their own licenses, normally the SIL Open Font License. Confirm the license for each font before use.</p>
-    <h2>Acceptable use</h2>
-    <p>Do not interfere with the service, bypass rate limits, or use the API in a way that harms other users or the underlying infrastructure.</p>
-    <h2>Open source</h2>
-    <p>The Akshari codebase is released under the MIT License. Contributions are governed by the repository’s contribution guidelines.</p>
-    <h2>Contact</h2>
-    <p>For service issues or legal questions, contact the maintainer through the project repository.</p>
+    <p class="updated">Last updated: July 19, 2026</p>
+    <p>These terms govern your use of Akshari (<strong>akshari.kunthive.in</strong>, "the service"), operated by Kunthive Labs. By using the service you agree to them; if you don't agree, don't use the service.</p>
+
+    <nav class="toc" aria-label="Table of contents">
+      <strong>Contents</strong>
+      <ol>
+        <li>The service</li>
+        <li>Font licenses</li>
+        <li>Acceptable use</li>
+        <li>Intellectual property</li>
+        <li>No warranty</li>
+        <li>Limitation of liability</li>
+        <li>Termination</li>
+        <li>Governing law</li>
+        <li>Changes</li>
+        <li>Open source &amp; contact</li>
+      </ol>
+    </nav>
+
+    <h2>1. The service</h2>
+    <p>Akshari provides typography discovery tools and metadata for browsing, searching, previewing, and comparing type families. It is offered free of charge and as-is, and may change, be limited, or be discontinued at any time without notice.</p>
+
+    <h2>2. Font licenses</h2>
+    <p>Akshari indexes Google Fonts. Individual font files remain subject to their own licenses, normally the SIL Open Font License (OFL). Akshari's "Copy CSS" export links to Google's font-serving infrastructure; it does not grant you any rights beyond those already given by the underlying font license. Confirm the license for any family before using it in a project. Akshari is an independent project and is not affiliated with, endorsed by, or sponsored by Google.</p>
+
+    <h2>3. Acceptable use</h2>
+    <p>When using the service, you agree not to:</p>
+    <ul>
+      <li>interfere with, disrupt, or place undue load on the service or its infrastructure;</li>
+      <li>bypass or attempt to bypass rate limits, security measures, or access controls;</li>
+      <li>scrape or bulk-extract the catalog in a way that harms the service or other users - use the published catalog export or API instead;</li>
+      <li>use the service to build a product that misrepresents font licensing or infringes a font's underlying license;</li>
+      <li>use the service for any unlawful purpose.</li>
+    </ul>
+    <p>We may restrict or block access for anyone who violates these terms.</p>
+
+    <h2>4. Intellectual property</h2>
+    <p>The Akshari name, brand mark, and interface design are owned by Kunthive Labs. The application source code is released under the MIT License (see section 10). Font families, their glyphs, and their own licenses remain the property of their respective designers and foundries, distributed via Google Fonts.</p>
+
+    <h2>5. No warranty</h2>
+    <p>The service is provided "as is" and "as available," without warranties of any kind, express or implied, including fitness for a particular purpose, non-infringement, or uninterrupted or error-free operation. Font metadata (tags, categorisation, similarity) is generated by an automated pipeline and may be imprecise.</p>
+
+    <h2>6. Limitation of liability</h2>
+    <p>To the maximum extent permitted by applicable law, Kunthive Labs is not liable for any indirect, incidental, or consequential damages arising from your use of, or inability to use, the service. Nothing in these terms limits liability where it cannot lawfully be limited (for example, liability for fraud or for death or personal injury caused by negligence).</p>
+
+    <h2>7. Termination</h2>
+    <p>You may stop using the service at any time. We may suspend or terminate access for anyone who breaches these terms, without prior notice where reasonably necessary to protect the service or other users.</p>
+
+    <h2>8. Governing law</h2>
+    <p>These terms are governed by the laws applicable in the jurisdiction where Kunthive Labs operates the service, without regard to conflict-of-law rules, except where mandatory consumer-protection law in your own country of residence gives you additional rights that cannot be waived. If you run a self-hosted instance, you are responsible for choosing and disclosing the governing law that applies to your deployment.</p>
+
+    <h2>9. Changes</h2>
+    <p>We may update these terms as the service changes. Material changes will update the date at the top of this page; continued use after a change means you accept the current version.</p>
+
+    <h2>10. Open source &amp; contact</h2>
+    <p>The Akshari codebase is released under the MIT License. Contributions are governed by the repository's contribution guidelines. For service issues or legal questions, contact the maintainer through the <a href="https://github.com/kunthive-Labs/Akshari">project repository</a>.</p>
   </body>
 </html>

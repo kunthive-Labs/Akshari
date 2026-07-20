@@ -36,17 +36,42 @@ export function scoreFont(font, queryTags = [], explicitTags = []) {
   return matches.reduce((total, confidence) => total + confidence, 0) / requested.length
 }
 
-// The catalog pipeline: filter by explicit tags, score every family against the
-// query's inferred tags, drop non-matches, and rank. Pure and DB-free so the
+// A typed query should be able to find one specific family by name, not just a
+// vibe. Exact/prefix/substring hits on the family name rank above tag-based
+// scoring so "Roboto" surfaces Roboto, not the entire catalog at a tied score.
+function nameMatchScore(family, needle) {
+  if (!needle) return 0
+  const lower = family.toLowerCase()
+  if (lower === needle) return 100
+  if (lower.startsWith(needle)) return 96
+  if (lower.includes(needle)) return 90
+  return 0
+}
+
+// The catalog pipeline: filter by explicit tags, then score every remaining
+// family against the query - by name match first, then inferred/explicit tags,
+// then a plain substring fallback over category/description/tags - and drop
+// anything that scores zero once a query is present. Pure and DB-free so the
 // browser and the Node/edge server run the exact same logic over the same data.
 export function scoreCatalog(fonts, q = '', tags = []) {
   const inferredTags = inferTags(q)
   const normalizedTags = tags.map(tag => tag.toLowerCase())
-  const needle = q.toLowerCase()
+  const needle = q.trim().toLowerCase()
+  const requestedTags = [...inferredTags, ...normalizedTags]
+
   return fonts
     .filter(font => normalizedTags.every(tag => font.tags.some(item => item.tag === tag)))
-    .map(font => ({ ...font, matchScore: Math.round(scoreFont(font, inferredTags, normalizedTags) * 100) }))
-    .filter(font => !q || font.matchScore > 0 || [font.family, font.category, font.description, ...font.tags.map(tag => tag.tag)].join(' ').toLowerCase().includes(needle))
+    .map(font => {
+      if (!needle) {
+        const matchScore = requestedTags.length ? Math.round(scoreFont(font, inferredTags, normalizedTags) * 100) : 50
+        return { ...font, matchScore }
+      }
+      const nameScore = nameMatchScore(font.family, needle)
+      const tagScore = requestedTags.length ? Math.round(scoreFont(font, inferredTags, normalizedTags) * 100) : 0
+      const fieldMatch = !nameScore && [font.category, font.description, ...font.tags.map(tag => tag.tag)].join(' ').toLowerCase().includes(needle)
+      return { ...font, matchScore: Math.max(nameScore, tagScore, fieldMatch ? 45 : 0) }
+    })
+    .filter(font => !needle || font.matchScore > 0)
     .sort((a, b) => b.matchScore - a.matchScore || a.family.localeCompare(b.family))
 }
 

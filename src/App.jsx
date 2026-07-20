@@ -3,6 +3,8 @@ import {
   ArrowRight, Check, Copy, MagnifyingGlass, Moon, Plus, Sun, X,
 } from '@phosphor-icons/react'
 import { inferTags, scoreCatalog } from '../server/search.mjs'
+import CookieConsent from './CookieConsent.jsx'
+import { hasPreferencesConsent, REOPEN_EVENT } from './consent.js'
 
 // A pangram: one sentence that carries every letter a to z, so each card shows
 // how the whole alphabet behaves in the family, not just a single glyph.
@@ -290,8 +292,10 @@ function App() {
   const [loading, setLoading] = useState(true)
   const [catalogMessage, setCatalogMessage] = useState('')
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
-  // Default to light mode; only honour an explicit saved preference.
-  const [theme, setTheme] = useState(() => localStorage.getItem('fontscape-theme') || 'light')
+  // Default to light mode; only honour a saved preference if the visitor has
+  // actually consented to Preferences storage (see src/consent.js).
+  const [theme, setTheme] = useState(() => (hasPreferencesConsent() && localStorage.getItem('fontscape-theme')) || 'light')
+  const [consentTick, setConsentTick] = useState(0)
   const [activeTags, setActiveTags] = useState([])
   const [sort, setSort] = useState('match')
   const [previewFont, setPreviewFont] = useState(null)
@@ -312,8 +316,11 @@ function App() {
   useEffect(() => {
     document.documentElement.dataset.theme = theme
     document.documentElement.style.colorScheme = theme
-    localStorage.setItem('fontscape-theme', theme)
-  }, [theme])
+    // Re-runs on every consent change too, so accepting Preferences persists
+    // the current theme immediately and withdrawing it clears the stored value.
+    if (hasPreferencesConsent()) localStorage.setItem('fontscape-theme', theme)
+    else localStorage.removeItem('fontscape-theme')
+  }, [theme, consentTick])
 
   // Load the whole catalog once, straight from the static export. Every search,
   // score, and page after this runs in the browser — no API, no round trips.
@@ -371,7 +378,7 @@ function App() {
       <nav className="topnav" aria-label="Primary">
         <a className="is-active" href="#top">Discover</a>
         <a href="#results">Catalog</a>
-        <a href="https://github.com/kunthive-Labs/Akshari">About</a>
+        <a href="/about.html">About</a>
       </nav>
       <div className="top-actions">
         <button type="button" className="search-shortcut" onClick={() => document.getElementById('font-search')?.focus()}><MagnifyingGlass size={15} /> Search <kbd>/</kbd></button>
@@ -402,8 +409,10 @@ function App() {
           </div>
 
           <nav className="side-footer" aria-label="Footer">
+            <a href="/about.html">About</a>
             <a href="/terms.html">Terms</a>
             <a href="/privacy.html">Privacy</a>
+            <button type="button" className="side-footer-btn" onClick={() => window.dispatchEvent(new CustomEvent(REOPEN_EVENT))}>Cookie settings</button>
             <a href="https://github.com/kunthive-Labs/Akshari">Contribute</a>
           </nav>
         </div>
@@ -449,6 +458,7 @@ function App() {
     </aside>}
     {previewFont && <PreviewDialog font={previewFont} pageTheme={theme} onClose={() => setPreviewFont(null)} />}
     {compareOpen && compared.length > 0 && <CompareView fonts={compared} pageTheme={theme} onRemove={toggleCompare} onClose={() => setCompareOpen(false)} />}
+    <CookieConsent onConsentChange={() => setConsentTick(tick => tick + 1)} />
   </div>
 }
 
