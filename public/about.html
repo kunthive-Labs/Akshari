@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="description" content="Akshari is a specimen book for the whole of Google Fonts - what it is, how the catalog is built and tagged, and how to self-host it." />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://akshari.kunthive.in/about.html" />
+    <title>About - Akshari</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400&family=Inter:wght@400;500;600&family=Source+Serif+4:ital,wght@0,400;1,400&display=swap" />
+    <style>
+      :root { color-scheme: light; --bg:#F4F1EA; --ink:#1C1A16; --soft:#4A473F; --muted:#8A8577; --accent:#1E4A72; --tint:#E4ECF3; --line:rgba(28,26,22,.12); }
+      @media (prefers-color-scheme: dark) { :root { color-scheme: dark; --bg:#17150F; --ink:#F2EEE5; --soft:#C4BEB0; --muted:#8C877A; --accent:#A9C8E3; --tint:#1E2C3A; --line:rgba(242,238,229,.1); } }
+      * { box-sizing: border-box; }
+      body { max-width: 760px; margin: 0 auto; padding: 64px 24px 96px; background: var(--bg); color: var(--ink); font: 16px/1.65 'Inter', system-ui, sans-serif; }
+      a { color: var(--accent); text-decoration: none; }
+      a:hover { text-decoration: underline; }
+      .back { display: inline-block; margin-bottom: 40px; font-size: 14px; }
+      .eyebrow { display: block; margin-bottom: 8px; font-size: 13px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--soft); }
+      h1 { margin: 0 0 4px; font-family: 'Fraunces', Georgia, serif; font-weight: 400; font-size: 44px; letter-spacing: -.02em; }
+      h2 { margin: 48px 0 10px; font-family: 'Fraunces', Georgia, serif; font-weight: 500; font-size: 22px; letter-spacing: -.01em; }
+      p { max-width: 65ch; color: var(--soft); }
+      .lead { max-width: 56ch; font-family: 'Source Serif 4', Georgia, serif; font-style: italic; font-size: 19px; line-height: 1.5; color: var(--ink); margin-top: 18px; }
+      .stats { display: flex; flex-wrap: wrap; gap: 28px; margin: 28px 0 4px; padding: 24px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+      .stat strong { display: block; font-family: 'Fraunces', Georgia, serif; font-size: 28px; font-weight: 500; color: var(--ink); }
+      .stat span { font-size: 13px; color: var(--muted); }
+      ul { margin: 8px 0; padding-left: 20px; color: var(--soft); max-width: 62ch; }
+      li { margin: 4px 0; }
+      .card { margin-top: 16px; padding: 18px 20px; border: 1px solid var(--line); border-radius: 6px; background: color-mix(in srgb, var(--tint) 55%, transparent); }
+      .card p { margin: 0; max-width: none; }
+      code { font-family: ui-monospace, Menlo, monospace; font-size: .9em; background: var(--tint); padding: 1px 5px; border-radius: 3px; }
+      .foot-nav { margin-top: 56px; padding-top: 24px; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: 14px; color: var(--soft); }
+    </style>
+  </head>
+  <body>
+    <a class="back" href="/">← Back to Akshari</a>
+    <span class="eyebrow">About the project</span>
+    <h1>A specimen book, not a font dump.</h1>
+    <p class="lead">Akshari exists so you can choose type by how it feels and where it's going to live, not by scrolling a flat A-to-Z list and guessing.</p>
+
+    <h2>What Akshari does</h2>
+    <p>Every family is shown as a live, readable specimen rather than a thumbnail: full alphabet, figures, and your own sample text, rendered in the real webfont. You can describe the job the type needs to do - "warm, trustworthy fintech" or "technical dev tool" - and Akshari ranks the catalog against that description. Filters, curated directions, and a side-by-side compare view sit alongside it, and every family ends in one click: copyable CSS for the exact weights shown.</p>
+
+    <h2>The catalog</h2>
+    <p>Akshari indexes the full Google Fonts library - 1,900+ families and growing - sourced directly from Google's font metadata and kept in sync as new families are published. Every included typeface keeps its own license, normally the SIL Open Font License (OFL). Akshari doesn't modify font files; it only adds discovery metadata on top.</p>
+    <div class="stats">
+      <div class="stat"><strong>1,900+</strong><span>type families</span></div>
+      <div class="stat"><strong>100%</strong><span>Google Fonts, OFL-licensed</span></div>
+      <div class="stat"><strong>0</strong><span>accounts required</span></div>
+    </div>
+
+    <h2>How families get tagged</h2>
+    <p>Search works on feeling because each family is scored against a small, fixed vocabulary of semantic tags (things like <em>modern</em>, <em>editorial</em>, <em>technical</em>, <em>rounded</em>) rather than free-text keywords. Tags come from a repeatable pipeline: deterministic OpenType metrics are extracted from each font file, a rendered specimen and those measurements are reviewed against the fixed vocabulary, and every accepted tag is checked against a hand-curated calibration set before it ships. The pipeline and vocabulary are versioned in the open-source repository, so the scoring logic is never a black box.</p>
+
+    <h2>Open source and self-hosting</h2>
+    <p>Akshari's application code is MIT licensed and built by <a href="https://github.com/kunthive-Labs">Kunthive Labs</a>. The whole stack - interface, catalog export, and tagging pipeline - is designed to run on your own infrastructure.</p>
+    <div class="card">
+      <p><code>git clone</code> the repository, then <code>docker compose up --build</code> to run a self-hosted instance, or read the API and pipeline docs in the README to import your own catalog.</p>
+    </div>
+    <ul>
+      <li><a href="https://github.com/kunthive-Labs/Akshari">Source code and README</a></li>
+      <li><a href="https://github.com/kunthive-Labs/Akshari/issues">Report an issue or request a family</a></li>
+    </ul>
+
+    <h2>Contact</h2>
+    <p>For anything else - press, partnerships, or a question that isn't covered here - reach the maintainer through the <a href="https://github.com/kunthive-Labs/Akshari">project repository</a>.</p>
+
+    <nav class="foot-nav" aria-label="Footer">
+      <a href="/">Discover</a>
+      <a href="/terms.html">Terms</a>
+      <a href="/privacy.html">Privacy</a>
+    </nav>
+  </body>
+</html>

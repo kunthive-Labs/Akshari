@@ -371,7 +371,7 @@ function App() {
       <nav className="topnav" aria-label="Primary">
         <a className="is-active" href="#top">Discover</a>
         <a href="#results">Catalog</a>
-        <a href="https://github.com/kunthive-Labs/Akshari">About</a>
+        <a href="/about.html">About</a>
       </nav>
       <div className="top-actions">
         <button type="button" className="search-shortcut" onClick={() => document.getElementById('font-search')?.focus()}><MagnifyingGlass size={15} /> Search <kbd>/</kbd></button>
@@ -402,6 +402,7 @@ function App() {
           </div>
 
           <nav className="side-footer" aria-label="Footer">
+            <a href="/about.html">About</a>
             <a href="/terms.html">Terms</a>
             <a href="/privacy.html">Privacy</a>
             <a href="https://github.com/kunthive-Labs/Akshari">Contribute</a>
